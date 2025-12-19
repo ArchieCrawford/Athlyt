@@ -10,7 +10,7 @@
     "format": "prettier \"**/*.{ts,tsx}\" --write"
   },
   "dependencies": {
-    "@gorhom/bottom-sheet": "^4.6.4",
+    "@gorhom/bottom-sheet": "^5.2.8",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/material-bottom-tabs": "^6.2.16",
     "@react-navigation/material-top-tabs": "^6.6.3",

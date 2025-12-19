@@ -14,24 +14,36 @@ import { RootState } from "../redux/store";
  * @param {Object} options to be passed along to useQuery
  * @returns
  */
-export const useFollowingMutation = (options = {}) => {
+export const useFollowingMutation = (
+  options: Record<string, unknown> = {},
+) => {
   const queryClient = useQueryClient();
   const currentUserId = useSelector(
     (state: RootState) => state.auth.currentUser?.uid,
   );
 
-  return useMutation(changeFollowState, {
-    ...options,
-    onMutate: (variables) => {
+  const { onMutate, ...rest } = options as {
+    onMutate?: (variables: any) => unknown | Promise<unknown>;
+    [key: string]: unknown;
+  };
+
+  return useMutation({
+    mutationFn: changeFollowState,
+    ...rest,
+    onMutate: async (variables) => {
+      const userResult = onMutate ? await onMutate(variables) : undefined;
+
       if (!currentUserId) {
         console.error("No current user");
-        return;
+        return userResult;
       }
 
       queryClient.setQueryData(
         keys.userFollowing(currentUserId, variables.otherUserId),
         !variables.isFollowing,
       );
+
+      return userResult;
     },
   });
 };

@@ -15,19 +15,15 @@ import { keys } from "./queryKeys";
 export const useFollowing = (
   userId: string | null,
   otherUserId: string | null,
-  options = {},
+  options: Record<string, unknown> = {},
 ) => {
-  if (!userId || !otherUserId) {
-    return {
-      data: null,
-      isLoading: false,
-      isError: false,
-    };
-  }
-
-  return useQuery(
-    keys.userFollowing(userId, otherUserId),
-    () => getIsFollowing(userId, otherUserId),
-    options,
-  );
+  return useQuery({
+    queryKey: keys.userFollowing(userId ?? "", otherUserId ?? ""),
+    queryFn: async () => {
+      if (!userId || !otherUserId) return null;
+      return getIsFollowing(userId, otherUserId);
+    },
+    enabled: !!userId && !!otherUserId,
+    ...options,
+  });
 };

@@ -34,8 +34,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "3eea181a-20ed-43a7-9079-7e45147c978f"
+        "projectId": "84f802e3-602d-4196-bb11-2582c557cbdc"
       }
-    }
+    },
+    "owner": "archie.crawford"
   }
 }

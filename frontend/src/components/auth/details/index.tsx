@@ -35,7 +35,10 @@ export default function AuthDetails({
   const handleLogin = () => {
     signIn(email.trim(), password)
       .then(() => setMenuMessage(""))
-      .catch(() => setMenuMessage("Login failed. Check your details."));
+      .catch((err) => {
+        const msg = err?.message || "Login failed. Check your details.";
+        setMenuMessage(msg);
+      });
   };
 
   const handleRegister = () => {
@@ -45,7 +48,10 @@ export default function AuthDetails({
         setAuthPage(1);
         setMenuMessage("Check your email to confirm.");
       })
-      .catch(() => setMenuMessage("Sign up failed. Try again."));
+      .catch((err) => {
+        const msg = err?.message || "Sign up failed. Try again.";
+        setMenuMessage(msg);
+      });
   };
 
   return (

@@ -11,6 +11,7 @@ import { Feather } from "@expo/vector-icons";
 import { useFollowingMutation } from "../../../hooks/useFollowingMutation";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { User } from "../../../types";
 
 /**
  * Renders the header of the user profile and
@@ -21,11 +22,7 @@ import { useSelector } from "react-redux";
  * @param {Object} props.user information of the user to display
  * @returns
  */
-export default function ProfileHeader({
-  user,
-}: {
-  user: RootState["auth"]["currentUser"];
-}) {
+export default function ProfileHeader({ user }: { user: User }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [followersCount, setFollowersCount] = useState(
