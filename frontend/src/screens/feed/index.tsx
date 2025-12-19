@@ -15,10 +15,8 @@ import { Post } from "../../../types";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
-import {
-  CurrentUserProfileItemInViewContext,
-  FeedStackParamList,
-} from "../../navigation/feed";
+import { FeedStackParamList } from "../../navigation/feed/types";
+import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/context";
 import useMaterialNavBarHeight from "../../hooks/useMaterialNavBarHeight";
 
 type FeedScreenRouteProp =

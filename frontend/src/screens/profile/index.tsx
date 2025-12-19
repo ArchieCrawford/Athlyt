@@ -5,10 +5,8 @@ import ProfileHeader from "../../components/profile/header";
 import ProfilePostList from "../../components/profile/postList";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useContext, useEffect } from "react";
-import {
-  CurrentUserProfileItemInViewContext,
-  FeedStackParamList,
-} from "../../navigation/feed";
+import { FeedStackParamList } from "../../navigation/feed/types";
+import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/context";
 import { useUser } from "../../hooks/useUser";
 import { getPostsByUserId } from "../../services/posts";
 import { Post } from "../../../types";

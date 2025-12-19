@@ -1,29 +1,12 @@
-import { Dispatch, SetStateAction, createContext, useState } from "react";
+import { useState } from "react";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import FeedScreen from "../../screens/feed";
 import ProfileScreen from "../../screens/profile";
-
-export type FeedStackParamList = {
-  feedList: {
-    creator: string;
-    profile: boolean;
-  };
-  feedProfile: { initialUserId: string };
-};
-
-interface CurrentUserProfileItemInViewContextType {
-  currentUserProfileItemInView: string | null;
-  setCurrentUserProfileItemInView: Dispatch<SetStateAction<string | null>>;
-}
+import { FeedStackParamList } from "./types";
+import { CurrentUserProfileItemInViewContext } from "./context";
 
 const { Screen, Navigator } =
   createMaterialTopTabNavigator<FeedStackParamList>();
-
-export const CurrentUserProfileItemInViewContext =
-  createContext<CurrentUserProfileItemInViewContextType>({
-    currentUserProfileItemInView: null,
-    setCurrentUserProfileItemInView: () => {},
-  });
 
 const FeedNavigation = () => {
   const [currentUserProfileItemInView, setCurrentUserProfileItemInView] =
