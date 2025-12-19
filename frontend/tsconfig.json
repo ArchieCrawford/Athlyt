@@ -9,6 +9,17 @@
     "skipLibCheck": true,
     "types": ["react", "react-native"]
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "App.tsx",
+    "supabaseClient.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "backend/**",
+    "**/supabase/**",
+    "change-log/**"
+  ]
 }
