@@ -2,6 +2,10 @@
 frontend/.env
 backend/.env
 .expo/
+backend/Supabase/collegecoaches_all.csv
+backend/Supabase/collegecoaches_all.json
+backend/Supabase/collegecoaches-all/
+backend/Supabase/logs/
 .expo/
 change-log/
 backend/Supabase/
