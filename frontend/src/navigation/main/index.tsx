@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AuthScreen from "../../screens/auth";
+import Landing from "../../screens/auth/Landing";
 import { RootState } from "../../redux/store";
 import HomeScreen from "../home";
 import { View } from "react-native";
@@ -16,6 +17,7 @@ import ChatSingleScreen from "../../screens/chat/single";
 import useAuth from "../../hooks/useAuth";
 
 export type RootStackParamList = {
+  landing: undefined;
   home: undefined;
   auth: undefined;
   userPosts: { creator: string; profile: boolean };
@@ -31,6 +33,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function Route() {
   const { loading } = useAuth();
   const currentUserObj = useSelector((state: RootState) => state.auth);
+  const initialRouteName = currentUserObj.currentUser ? "home" : "landing";
 
   if (loading || !currentUserObj.loaded) {
     return <View></View>;
@@ -38,13 +41,20 @@ export default function Route() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator initialRouteName={initialRouteName}>
         {currentUserObj.currentUser == null ? (
-          <Stack.Screen
-            name="auth"
-            component={AuthScreen}
-            options={{ headerShown: false }}
-          />
+          <>
+            <Stack.Screen
+              name="landing"
+              component={Landing}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="auth"
+              component={AuthScreen}
+              options={{ headerShown: false }}
+            />
+          </>
         ) : (
           <>
             <Stack.Screen

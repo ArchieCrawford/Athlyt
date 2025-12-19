@@ -1,7 +1,15 @@
-import { FlatList, View, Dimensions, ViewToken } from "react-native";
+import {
+  FlatList,
+  View,
+  Dimensions,
+  ViewToken,
+  ActivityIndicator,
+  Text,
+  RefreshControl,
+} from "react-native";
 import styles from "./styles";
 import PostSingle, { PostSingleHandles } from "../../components/general/post";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { getFeed, getPostsByUserId } from "../../services/posts";
 import { Post } from "../../../types";
 import { RouteProp } from "@react-navigation/native";
@@ -34,21 +42,41 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
     CurrentUserProfileItemInViewContext,
   );
 
-  const { creator, profile } = route.params as {
+  const params = (route.params ?? {}) as Partial<{
     creator: string;
     profile: boolean;
-  };
+  }>;
+  const creator = params.creator ?? "";
+  const profile = params.profile ?? false;
 
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Post[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const mediaRefs = useRef<Record<string, PostSingleHandles | null>>({});
 
-  useEffect(() => {
-    if (profile && creator) {
-      getPostsByUserId(creator).then((posts) => setPosts(posts));
-    } else {
-      getFeed().then((posts) => setPosts(posts));
+  const fetchPosts = useCallback(async () => {
+    try {
+      setError(null);
+      const nextPosts = profile && creator
+        ? await getPostsByUserId(creator)
+        : await getFeed();
+      setPosts(nextPosts);
+    } catch (err) {
+      console.error("Failed to load feed", err);
+      setError("Unable to load posts");
+      setPosts([]);
     }
-  }, []);
+  }, [creator, profile]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchPosts();
+    setRefreshing(false);
+  }, [fetchPosts]);
 
   /**
    * Called any time a new post is shown when a user scrolls
@@ -101,21 +129,43 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={posts}
-        windowSize={4}
-        initialNumToRender={2}
-        maxToRenderPerBatch={2}
-        removeClippedSubviews
-        viewabilityConfig={{
-          itemVisiblePercentThreshold: 0,
-        }}
-        renderItem={renderItem}
-        pagingEnabled
-        keyExtractor={(item) => item.id}
-        decelerationRate={"fast"}
-        onViewableItemsChanged={onViewableItemsChanged.current}
-      />
+      {posts === null ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color="white" />
+        </View>
+      ) : posts.length === 0 ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 }}>
+          <Text style={{ color: "white", fontSize: 18, fontWeight: "700" }}>
+            {error ? "Could not load posts" : "No posts yet"}
+          </Text>
+          <Text style={{ color: "white", opacity: 0.75, textAlign: "center" }}>
+            {error
+              ? "Check your connection and try again."
+              : profile
+              ? "This user has not posted yet."
+              : "Follow athletes and check back soon."}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={posts}
+          windowSize={4}
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          removeClippedSubviews
+          viewabilityConfig={{
+            itemVisiblePercentThreshold: 0,
+          }}
+          renderItem={renderItem}
+          pagingEnabled
+          keyExtractor={(item) => item.id}
+          decelerationRate={"fast"}
+          onViewableItemsChanged={onViewableItemsChanged.current}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        />
+      )}
     </View>
   );
 }

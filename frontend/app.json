@@ -4,6 +4,7 @@
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "athlyt",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {

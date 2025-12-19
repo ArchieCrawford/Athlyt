@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import AuthDetails from "../../components/auth/details";
 import AuthMenu from "../../components/auth/menu";
 import styles from "./styles";
 
-/**
- * Function that renders a component responsible for being the
- * authentication screen. This is simply a placeholder for
- * the components that actually contains functionalities
- * @returns Component
- */
-export default function AuthScreen() {
+export default function AuthScreen({ route }: any) {
+  const mode = route?.params?.mode as "login" | "signup" | undefined;
+
   const [authPage, setAuthPage] = useState<0 | 1>(0);
   const [detailsPage, setDetailsPage] = useState(false);
   const [menuMessage, setMenuMessage] = useState("");
+
+  useEffect(() => {
+    if (mode === "signup") setAuthPage(1);
+    if (mode === "login") setAuthPage(0);
+  }, [mode]);
 
   return (
     <View style={styles.container}>
