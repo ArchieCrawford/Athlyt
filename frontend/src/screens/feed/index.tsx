@@ -119,7 +119,9 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
       >
         <PostSingle
           item={item}
-          ref={(PostSingeRef) => (mediaRefs.current[item.id] = PostSingeRef)}
+          ref={(PostSingeRef) => {
+            mediaRefs.current[item.id] = PostSingeRef;
+          }}
         />
       </View>
     );

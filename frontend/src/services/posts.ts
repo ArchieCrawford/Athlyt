@@ -13,6 +13,7 @@ let commentChannel: RealtimeChannel | null = null;
 
 export const getFeed = async (): Promise<Post[]> => {
   const { data, error } = await supabase
+    .schema("app")
     .from("post")
     .select("*")
     .order("creation", { ascending: false });
@@ -35,6 +36,7 @@ export const getFeed = async (): Promise<Post[]> => {
 export const getLikeById = async (postId: string, uid: string) => {
   try {
     const { data, error } = await supabase
+      .schema("app")
       .from("post_likes")
       .select("user_id")
       .eq("post_id", postId)
@@ -64,6 +66,7 @@ export const updateLike = async (
   try {
     if (currentLikeState) {
       const { error } = await supabase
+        .schema("app")
         .from("post_likes")
         .delete()
         .eq("post_id", postId)
@@ -72,6 +75,7 @@ export const updateLike = async (
       if (error) throw error;
     } else {
       const { error } = await supabase
+        .schema("app")
         .from("post_likes")
         .upsert({ post_id: postId, user_id: uid });
 
@@ -88,7 +92,7 @@ export const addComment = async (
   comment: string,
 ) => {
   try {
-    const { error } = await supabase.from("post_comments").insert({
+    const { error } = await supabase.schema("app").from("post_comments").insert({
       post_id: postId,
       creator,
       comment,
@@ -107,6 +111,7 @@ export const commentListener = (
 ) => {
   const loadComments = async () => {
     const { data, error } = await supabase
+      .schema("app")
       .from("post_comments")
       .select("*")
       .eq("post_id", postId)
@@ -174,11 +179,12 @@ export const getPostsByUserId = (
     }
 
     const loadPosts = async () => {
-      const { data, error } = await supabase
-        .from("post")
-        .select("*")
-        .eq("creator", uid)
-        .order("creation", { ascending: false });
+        const { data, error } = await supabase
+          .schema("app")
+          .from("post")
+          .select("*")
+          .eq("creator", uid)
+          .order("creation", { ascending: false });
 
       if (error) {
         reject(error);
