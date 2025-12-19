@@ -15,14 +15,20 @@ export const getFeed = async (): Promise<Post[]> => {
   const { data, error } = await supabase
     .from("post")
     .select("*")
-    .order("creation", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Failed to get feed: ", error);
     throw error;
   }
 
-  return (data as Post[]) || [];
+  const posts = (data || []).map((item) => ({
+    id: item.id,
+    ...item,
+    creation: item.creation ?? item.created_at,
+  })) as Post[];
+
+  return posts;
 };
 
 /**
@@ -92,7 +98,7 @@ export const addComment = async (
       post_id: postId,
       creator,
       comment,
-      creation: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     });
 
     if (error) throw error;
@@ -110,7 +116,7 @@ export const commentListener = (
       .from("post_comments")
       .select("*")
       .eq("post_id", postId)
-      .order("creation", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Failed to load comments", error);
@@ -121,7 +127,7 @@ export const commentListener = (
       id: item.id,
       creator: item.creator,
       comment: item.comment,
-      creation: item.creation,
+      creation: item.creation ?? item.created_at,
     })) as Comment[];
 
     setCommentList(comments);
@@ -178,7 +184,7 @@ export const getPostsByUserId = (
           .from("post")
           .select("*")
           .eq("creator", uid)
-          .order("creation", { ascending: false });
+          .order("created_at", { ascending: false });
 
       if (error) {
         reject(error);
@@ -188,6 +194,7 @@ export const getPostsByUserId = (
       const posts = (data || []).map((item) => ({
         id: item.id,
         ...item,
+        creation: item.creation ?? item.created_at,
       })) as Post[];
 
       resolve(posts);

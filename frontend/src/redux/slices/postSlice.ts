@@ -58,7 +58,7 @@ export const createPost = createAsyncThunk(
         description,
         likesCount: 0,
         commentsCount: 0,
-        creation: new Date().toISOString(),
+        created_at: new Date().toISOString(),
       });
 
       if (insertError) {
@@ -79,7 +79,7 @@ export const getPostsByUser = createAsyncThunk(
         .from("post")
         .select("*")
         .eq("creator", uid)
-        .order("creation", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) {
         throw error;
@@ -88,6 +88,7 @@ export const getPostsByUser = createAsyncThunk(
       const posts = (data || []).map((item) => ({
         id: item.id,
         ...item,
+        creation: item.creation ?? (item as any).created_at,
       })) as Post[];
 
       dispatch({ type: "CURRENT_USER_POSTS_UPDATE", payload: posts });
