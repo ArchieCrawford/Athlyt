@@ -25,66 +25,35 @@ This project is a TikTok clone built using React Native, Expo, TypeScript, Fireb
 
 ## Setup & Usage
 
-### Cloud Environment - Firebase
+### Cloud Environment - Supabase
 
-Firebase is used for data/file storage and authentication. To get started, set up your own Firebase project using [this tutorial](https://youtube.com/watch?v=HrN1Fvjp2CE&t=762).
+Supabase now provides auth, database, realtime, and storage. Provision a Supabase project, then run the SQL in [`backend/supabase/schema.sql`](backend/supabase/schema.sql) inside the Supabase SQL editor to create tables, triggers, and row-level security policies.
 
-Next, you'll need to update two configuration files to point to your new Firebase project:
-
-- Update the Project ID (located in Firebase Project settings) in [`backend/.firebaserc`](backend/.firebaserc).
-- Update the firebaseConfig (located in Firebase Project settings under Your apps) in [`frontend/firebaseConfig.ts`](frontend/firebaseConfig.ts).
-
-### Backend - Firebase Functions
-
-Install the Firebase CLI tools globally to be able to manage and deploy Firebase services from your local machine.
-
-```
-npm install -g firebase-tools
-```
-
-Next, authenticate your account with Firebase and gain the necessary permissions.
-
-```
-firebase login
-```
-
-Go to the `backend\functions` directory and install the needed dependencies.
-
-```
-npm install
-```
-
-Run the following command to deploy the Firebase functions contained in the project, allowing them to be executed on the Firebase servers.
-
-```
-firebase deploy
-```
+Create a public storage bucket (default name `media`) for uploads, or set your own bucket name in the frontend `.env`.
 
 ### Frontend - React Native Application with Expo
 
-Go to the `frontend` directory and install the needed dependencies.
+1) Add environment variables in `frontend/.env` (or your preferred Expo env file):
 
 ```
+EXPO_PUBLIC_SUPABASE_URL=your-supabase-url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET=media
+```
+
+2) Install dependencies and start the Expo dev server:
+
+```
+cd frontend
 npm install
-```
-
-To start the application, run the following command.
-
-```
 npm run start
 ```
 
-This will launch the Expo development server. To view the application, you'll need either an iOS or Android emulator. If you're unfamiliar with setting up an emulator, you can follow the beginning of [this tutorial](https://www.youtube.com/watch?v=HrN1Fvjp2CE) for guidance on configuring an Android emulator. Watch [this tutorial](https://www.youtube.com/watch?v=DloY4tyzKDA) to set up an iOS emulator.
+Use an iOS/Android emulator or Expo Go to open the app.
 
-When you first run the project, you will encounter the following error related to Firestore:
+### Backend
 
-```
-@firebase/firestore: Firestore (10.3.0): Uncaught Error in snapshot listener: FirebaseError: [code=failed-precondition]: The query requires an index. You can create it here:
-```
-
-This error occurs because Firestore needs to create a specialized index for the query you're running, and it doesn't yet exist. Without this index, Firestore can't execute the query efficiently.
-
-To resolve this issue, you'll need to follow the provided link in the error message and click "Save" to create the required index. Doing so will optimize Firestore for your specific query needs, ensuring smooth and efficient operations.
+Firebase Functions are no longer required. All server logic now lives in Supabase (SQL triggers/RLS + storage). Keep the `backend/supabase` files as infra reference; nothing needs to be deployed separately.
 
 ## Next Steps
 

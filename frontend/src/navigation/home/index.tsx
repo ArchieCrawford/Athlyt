@@ -4,9 +4,10 @@ import CameraScreen from "../../screens/camera";
 import ProfileScreen from "../../screens/profile";
 import SearchScreen from "../../screens/search";
 import FeedNavigation from "../feed";
-import { FIREBASE_AUTH } from "../../../firebaseConfig";
 import ChatScreen from "../../screens/chat/list";
 import { useChats } from "../../hooks/useChats";
+import { useSelector } from "react-redux";
+import { RootState } from "../../redux/store";
 
 export type HomeStackParamList = {
   feed: undefined;
@@ -20,6 +21,9 @@ const Tab = createMaterialBottomTabNavigator<HomeStackParamList>();
 
 export default function HomeScreen() {
   useChats();
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
+  );
 
   return (
     <Tab.Navigator
@@ -70,7 +74,7 @@ export default function HomeScreen() {
             <Feather name="user" size={24} color={color} />
           ),
         }}
-        initialParams={{ initialUserId: FIREBASE_AUTH.currentUser?.uid ?? "" }}
+        initialParams={{ initialUserId: currentUserId ?? "" }}
       />
     </Tab.Navigator>
   );

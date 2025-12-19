@@ -3,21 +3,30 @@ import React from "react";
 import { useUser } from "../../../../hooks/useUser";
 import styles from "./styles";
 import { useNavigation } from "@react-navigation/native";
-import { FIREBASE_AUTH } from "../../../../../firebaseConfig";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../../../navigation/main";
 import { Chat } from "../../../../../types";
 import { Avatar } from "react-native-paper";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../../redux/store";
 
 const ChatListItem = ({ chat }: { chat: Chat }) => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { data: userData } = useUser(
-    FIREBASE_AUTH.currentUser &&
-      chat.members[0] === FIREBASE_AUTH.currentUser.uid
-      ? chat.members[1]
-      : chat.members[0],
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
   );
+  const contactId =
+    currentUserId && chat.members[0] === currentUserId
+      ? chat.members[1]
+      : chat.members[0];
+  const { data: userData } = useUser(
+    contactId,
+  );
+
+  const lastUpdateLabel = chat.lastUpdate
+    ? new Date(chat.lastUpdate as any).toLocaleDateString()
+    : "Now";
 
   return (
     <TouchableOpacity
@@ -38,13 +47,7 @@ const ChatListItem = ({ chat }: { chat: Chat }) => {
         <Text style={styles.lastMessage}>{chat.lastMessage}</Text>
       </View>
       <Text>
-        {chat.lastUpdate && chat.lastUpdate.seconds
-          ? `${
-              new Date(chat.lastUpdate.seconds * 1000).getMonth() + 1
-            }/${new Date(chat.lastUpdate.seconds * 1000).getDate()}/${new Date(
-              chat.lastUpdate.seconds * 1000,
-            ).getFullYear()}`
-          : "Now"}
+        {lastUpdateLabel}
       </Text>
     </TouchableOpacity>
   );

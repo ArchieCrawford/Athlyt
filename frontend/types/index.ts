@@ -32,11 +32,8 @@ export interface Chat {
   id: string;
   members: string[];
   lastMessage: string;
-  lastUpdate?: {
-    seconds?: number;
-    nanoseconds?: number;
-  };
-  messages: Message[];
+  lastUpdate?: string;
+  messages?: Message[];
 }
 
 export interface Message {

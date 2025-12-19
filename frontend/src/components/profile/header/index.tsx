@@ -6,11 +6,11 @@ import { RootState } from "../../../redux/store";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../../navigation/main";
-import { FIREBASE_AUTH } from "../../../../firebaseConfig";
 import { useFollowing } from "../../../hooks/useFollowing";
 import { Feather } from "@expo/vector-icons";
 import { useFollowingMutation } from "../../../hooks/useFollowingMutation";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 
 /**
  * Renders the header of the user profile and
@@ -31,19 +31,18 @@ export default function ProfileHeader({
   const [followersCount, setFollowersCount] = useState(
     user?.followersCount || 0,
   );
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
+  );
 
   useEffect(() => {
     setFollowersCount(user?.followersCount || 0);
   }, [user]);
 
-  const followingData = useFollowing(
-    FIREBASE_AUTH.currentUser?.uid ?? null,
-    user?.uid ?? null,
-  );
-  const isFollowing =
-    FIREBASE_AUTH.currentUser?.uid && user?.uid && followingData.data
-      ? followingData.data
-      : false;
+  const followingData = useFollowing(currentUserId ?? null, user?.uid ?? null);
+  const isFollowing = currentUserId && user?.uid && followingData.data
+    ? followingData.data
+    : false;
 
   const isFollowingMutation = useFollowingMutation();
 
@@ -120,7 +119,7 @@ export default function ProfileHeader({
             <Text style={styles.counterLabelText}>Likes</Text>
           </View>
         </View>
-        {FIREBASE_AUTH.currentUser?.uid === user.uid ? (
+        {currentUserId === user.uid ? (
           <TouchableOpacity
             style={buttonStyles.grayOutlinedButton}
             onPress={() => navigation.navigate("editProfile")}

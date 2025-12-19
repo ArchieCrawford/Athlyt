@@ -1,16 +1,7 @@
-import { FIREBASE_AUTH, FIREBASE_DB } from "../../../firebaseConfig";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  where,
-} from "firebase/firestore";
-import { saveMediaToStorage } from "../../services/utils";
-import uuid from "uuid-random";
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import uuid from "uuid-random";
+import { supabase } from "../../../supabaseClient";
+import { saveMediaToStorage } from "../../services/utils";
 import { Post } from "../../../types";
 
 interface PostState {
@@ -39,34 +30,43 @@ export const createPost = createAsyncThunk(
     },
     { rejectWithValue },
   ) => {
-    if (FIREBASE_AUTH.currentUser) {
-      try {
-        const storagePostId = uuid();
-        const [videoDownloadUrl, thumbnailDownloadUrl] = await Promise.all([
-          saveMediaToStorage(
-            video,
-            `post/${FIREBASE_AUTH.currentUser.uid}/${storagePostId}/video`,
-          ),
-          saveMediaToStorage(
-            thumbnail,
-            `post/${FIREBASE_AUTH.currentUser.uid}/${storagePostId}/thumbnail`,
-          ),
-        ]);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-        await addDoc(collection(FIREBASE_DB, "post"), {
-          creator: FIREBASE_AUTH.currentUser.uid,
-          media: [videoDownloadUrl, thumbnailDownloadUrl],
-          description,
-          likesCount: 0,
-          commentsCount: 0,
-          creation: serverTimestamp(),
-        });
-      } catch (error) {
-        console.error("Error creating post: ", error);
-        return rejectWithValue(error);
-      }
-    } else {
+    if (error || !user) {
       return rejectWithValue(new Error("User not authenticated"));
+    }
+
+    try {
+      const storagePostId = uuid();
+      const [videoDownloadUrl, thumbnailDownloadUrl] = await Promise.all([
+        saveMediaToStorage(
+          video,
+          `post/${user.id}/${storagePostId}/video.mp4`,
+        ),
+        saveMediaToStorage(
+          thumbnail,
+          `post/${user.id}/${storagePostId}/thumbnail.jpg`,
+        ),
+      ]);
+
+      const { error: insertError } = await supabase.from("post").insert({
+        creator: user.id,
+        media: [videoDownloadUrl, thumbnailDownloadUrl],
+        description,
+        likesCount: 0,
+        commentsCount: 0,
+        creation: new Date().toISOString(),
+      });
+
+      if (insertError) {
+        throw insertError;
+      }
+    } catch (error) {
+      console.error("Error creating post: ", error);
+      return rejectWithValue(error);
     }
   },
 );
@@ -75,22 +75,21 @@ export const getPostsByUser = createAsyncThunk(
   "post/getPostsByUser",
   async (uid: string, { dispatch, rejectWithValue }) => {
     try {
-      // Create a query against the collection.
-      const q = query(
-        collection(FIREBASE_DB, "post"),
-        where("creator", "==", uid),
-        orderBy("creation", "desc"),
-      );
+      const { data, error } = await supabase
+        .from("post")
+        .select("*")
+        .eq("creator", uid)
+        .order("creation", { ascending: false });
 
-      const querySnapshot = await getDocs(q);
+      if (error) {
+        throw error;
+      }
 
-      // Map over the snapshot to get the array of posts
-      const posts = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const id = doc.id;
-        return { id, ...data } as Post;
-      });
-      // Dispatch action to update the state. Replace `CURRENT_USER_POSTS_UPDATE` with the actual action creator
+      const posts = (data || []).map((item) => ({
+        id: item.id,
+        ...item,
+      })) as Post[];
+
       dispatch({ type: "CURRENT_USER_POSTS_UPDATE", payload: posts });
 
       return posts; // Return posts as fulfilled payload

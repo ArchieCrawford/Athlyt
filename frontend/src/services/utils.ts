@@ -1,27 +1,24 @@
-import { ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
-import { FIREBASE_STORAGE } from "../../firebaseConfig";
+import { supabase, SUPABASE_STORAGE_BUCKET } from "../../supabaseClient";
 
-export const saveMediaToStorage = async (media: string, path: string) => {
-  const fileRef = ref(FIREBASE_STORAGE, path);
+export const saveMediaToStorage = async (mediaUri: string, path: string) => {
+  const response = await fetch(mediaUri);
+  const blob = await response.blob();
 
-  const blob = await uriToBlob(media);
-  await uploadBytesResumable(fileRef, blob);
+  const { error } = await supabase.storage
+    .from(SUPABASE_STORAGE_BUCKET)
+    .upload(path, blob, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: blob.type || "application/octet-stream",
+    });
 
-  const downloadUrl = await getDownloadURL(fileRef);
-  return downloadUrl;
+  if (error) {
+    throw error;
+  }
+
+  const { data } = supabase.storage
+    .from(SUPABASE_STORAGE_BUCKET)
+    .getPublicUrl(path);
+
+  return data.publicUrl;
 };
-
-export function uriToBlob(uri: string): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.onload = function () {
-      resolve(xhr.response);
-    };
-    xhr.onerror = function () {
-      reject(new Error("uriToBlob failed"));
-    };
-    xhr.responseType = "blob";
-    xhr.open("GET", uri, true);
-    xhr.send(null);
-  });
-}

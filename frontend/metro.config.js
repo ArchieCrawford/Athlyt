@@ -1,7 +1,11 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require("@expo/metro-config");
 
-const defaultConfig = getDefaultConfig(__dirname);
-defaultConfig.resolver.sourceExts.push("cjs");
+const config = getDefaultConfig(__dirname);
 
-module.exports = defaultConfig;
+// Keep CJS support and ensure Metro respects package "exports" (needed for
+// packages like @tanstack/react-query to pick the native entry instead of web).
+config.resolver.sourceExts.push("cjs");
+config.resolver.unstable_enablePackageExports = true;
+
+module.exports = config;

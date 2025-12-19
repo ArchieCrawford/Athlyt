@@ -1,22 +1,9 @@
-import {
-  getDocs,
-  collection,
-  query,
-  getDoc,
-  doc,
-  deleteDoc,
-  setDoc,
-  addDoc,
-  serverTimestamp,
-  orderBy,
-  onSnapshot,
-  where,
-} from "firebase/firestore";
-import { FIREBASE_AUTH, FIREBASE_DB } from "../../firebaseConfig";
-import { Post, Comment } from "../../types";
 import { Dispatch, SetStateAction } from "react";
+import { RealtimeChannel } from "@supabase/supabase-js";
+import { supabase } from "../../supabaseClient";
+import { Post, Comment } from "../../types";
 
-let commentListenerInstance: (() => void) | null = null;
+let commentChannel: RealtimeChannel | null = null;
 
 /**
  * Returns all the posts in the database.
@@ -24,25 +11,18 @@ let commentListenerInstance: (() => void) | null = null;
  * @returns {Promise<[<Post>]>} post list if successful.
  */
 
-export const getFeed = (): Promise<Post[]> => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const q = query(
-        collection(FIREBASE_DB, "post"),
-        orderBy("creation", "desc"),
-      );
-      const querySnapshot = await getDocs(q);
-      const posts = querySnapshot.docs.map((doc) => {
-        const id = doc.id;
-        const data = doc.data();
-        return { id, ...data } as Post;
-      });
-      resolve(posts);
-    } catch (error) {
-      console.error("Failed to get feed: ", error);
-      reject(error);
-    }
-  });
+export const getFeed = async (): Promise<Post[]> => {
+  const { data, error } = await supabase
+    .from("post")
+    .select("*")
+    .order("creation", { ascending: false });
+
+  if (error) {
+    console.error("Failed to get feed: ", error);
+    throw error;
+  }
+
+  return (data as Post[]) || [];
 };
 
 /**
@@ -54,10 +34,17 @@ export const getFeed = (): Promise<Post[]> => {
  */
 export const getLikeById = async (postId: string, uid: string) => {
   try {
-    const likeDoc = await getDoc(
-      doc(FIREBASE_DB, "post", postId, "likes", uid),
-    );
-    return likeDoc.exists();
+    const { data, error } = await supabase
+      .from("post_likes")
+      .select("user_id")
+      .eq("post_id", postId)
+      .eq("user_id", uid);
+
+    if (error) {
+      throw error;
+    }
+
+    return (data?.length || 0) > 0;
   } catch (error) {
     throw new Error("Could not get like");
   }
@@ -74,13 +61,21 @@ export const updateLike = async (
   uid: string,
   currentLikeState: boolean,
 ) => {
-  const likeDocRef = doc(FIREBASE_DB, "post", postId, "likes", uid);
-
   try {
     if (currentLikeState) {
-      await deleteDoc(likeDocRef);
+      const { error } = await supabase
+        .from("post_likes")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", uid);
+
+      if (error) throw error;
     } else {
-      await setDoc(likeDocRef, {});
+      const { error } = await supabase
+        .from("post_likes")
+        .upsert({ post_id: postId, user_id: uid });
+
+      if (error) throw error;
     }
   } catch (error) {
     throw new Error("Could not update like");
@@ -93,11 +88,14 @@ export const addComment = async (
   comment: string,
 ) => {
   try {
-    await addDoc(collection(FIREBASE_DB, "post", postId, "comments"), {
+    const { error } = await supabase.from("post_comments").insert({
+      post_id: postId,
       creator,
       comment,
-      creation: serverTimestamp(),
+      creation: new Date().toISOString(),
     });
+
+    if (error) throw error;
   } catch (e) {
     console.error("Error adding comment: ", e);
   }
@@ -107,35 +105,67 @@ export const commentListener = (
   postId: string,
   setCommentList: Dispatch<SetStateAction<Comment[]>>,
 ) => {
-  const commentsQuery = query(
-    collection(FIREBASE_DB, "post", postId, "comments"),
-    orderBy("creation", "desc"),
-  );
+  const loadComments = async () => {
+    const { data, error } = await supabase
+      .from("post_comments")
+      .select("*")
+      .eq("post_id", postId)
+      .order("creation", { ascending: false });
 
-  const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
-    if (snapshot.docChanges().length === 0) {
+    if (error) {
+      console.error("Failed to load comments", error);
       return;
     }
-    const comments = snapshot.docs.map((docSnapshot) => {
-      const id = docSnapshot.id;
-      const data = docSnapshot.data();
-      return { id, ...data } as Comment;
-    });
-    setCommentList(comments);
-  });
 
-  return unsubscribe;
+    const comments = (data || []).map((item) => ({
+      id: item.id,
+      creator: item.creator,
+      comment: item.comment,
+      creation: item.creation,
+    })) as Comment[];
+
+    setCommentList(comments);
+  };
+
+  loadComments();
+
+  if (commentChannel) {
+    supabase.removeChannel(commentChannel);
+  }
+
+  commentChannel = supabase
+    .channel(`post-comments-${postId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "post_comments",
+        filter: `post_id=eq.${postId}`,
+      },
+      () => {
+        loadComments();
+      },
+    )
+    .subscribe();
+
+  return () => {
+    if (commentChannel) {
+      supabase.removeChannel(commentChannel);
+      commentChannel = null;
+    }
+  };
 };
 
 export const clearCommentListener = () => {
-  if (commentListenerInstance != null) {
-    commentListenerInstance();
-    commentListenerInstance = null;
+  if (commentChannel) {
+    supabase.removeChannel(commentChannel);
+    commentChannel = null;
   }
 };
 
 export const getPostsByUserId = (
-  uid = FIREBASE_AUTH.currentUser?.uid,
+  uid: string | null,
 ): Promise<Post[]> => {
   return new Promise((resolve, reject) => {
     if (!uid) {
@@ -143,21 +173,26 @@ export const getPostsByUserId = (
       return;
     }
 
-    const q = query(
-      collection(FIREBASE_DB, "post"),
-      where("creator", "==", uid),
-      orderBy("creation", "desc"),
-    );
+    const loadPosts = async () => {
+      const { data, error } = await supabase
+        .from("post")
+        .select("*")
+        .eq("creator", uid)
+        .order("creation", { ascending: false });
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let posts = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        const id = doc.id;
-        return { id, ...data } as Post;
-      });
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      const posts = (data || []).map((item) => ({
+        id: item.id,
+        ...item,
+      })) as Post[];
+
       resolve(posts);
-    });
+    };
 
-    return () => unsubscribe();
+    loadPosts();
   });
 };

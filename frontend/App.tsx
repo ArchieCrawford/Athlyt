@@ -3,6 +3,7 @@ import { Provider } from "react-redux";
 import Route from "./src/navigation/main";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import AuthProvider from "./src/providers/AuthProvider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,7 +19,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
         <QueryClientProvider client={queryClient}>
-          <Route />
+          <AuthProvider>
+            <Route />
+          </AuthProvider>
         </QueryClientProvider>
       </Provider>
     </GestureHandlerRootView>

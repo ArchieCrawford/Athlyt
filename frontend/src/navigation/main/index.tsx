@@ -1,10 +1,9 @@
-import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { userAuthStateListener } from "../../redux/slices/authSlice"; // Make sure the path is correct
+import React from "react";
+import { useSelector } from "react-redux";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AuthScreen from "../../screens/auth";
-import { AppDispatch, RootState } from "../../redux/store";
+import { RootState } from "../../redux/store";
 import HomeScreen from "../home";
 import { View } from "react-native";
 import SavePostScreen from "../../screens/savePost";
@@ -14,6 +13,7 @@ import Modal from "../../components/modal";
 import FeedScreen from "../../screens/feed";
 import ProfileScreen from "../../screens/profile";
 import ChatSingleScreen from "../../screens/chat/single";
+import useAuth from "../../hooks/useAuth";
 
 export type RootStackParamList = {
   home: undefined;
@@ -29,15 +29,10 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function Route() {
+  const { loading } = useAuth();
   const currentUserObj = useSelector((state: RootState) => state.auth);
 
-  const dispatch = useDispatch<AppDispatch>();
-
-  useEffect(() => {
-    dispatch(userAuthStateListener());
-  }, [dispatch]);
-
-  if (!currentUserObj.loaded) {
+  if (loading || !currentUserObj.loaded) {
     return <View></View>;
   }
 

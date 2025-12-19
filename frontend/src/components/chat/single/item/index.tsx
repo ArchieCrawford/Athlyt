@@ -3,19 +3,22 @@ import { View, Text, Image } from "react-native";
 import { useUser } from "../../../../hooks/useUser";
 import { generalStyles } from "../../../../styles";
 import styles from "./styles";
-import { FIREBASE_AUTH } from "../../../../../firebaseConfig";
 import { Message } from "../../../../../types";
 import { Avatar } from "react-native-paper";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../../redux/store";
 
 const ChatSingleItem = ({ item }: { item: Message }) => {
   const { data: userData, isLoading } = useUser(item.creator);
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
+  );
 
   if (isLoading) {
     return <></>;
   }
 
-  const isCurrentUser =
-    FIREBASE_AUTH.currentUser && item.creator === FIREBASE_AUTH.currentUser.uid;
+  const isCurrentUser = currentUserId && item.creator === currentUserId;
 
   return (
     <View

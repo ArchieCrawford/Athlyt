@@ -2,9 +2,7 @@ import { Dispatch, SetStateAction, useState } from "react";
 import { View, Text, TouchableOpacity, TextInput } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import styles from "./styles";
-import { useDispatch } from "react-redux";
-import { login, register } from "../../../redux/slices/authSlice";
-import { AppDispatch } from "../../../redux/store";
+import useAuth from "../../../hooks/useAuth";
 
 export interface AuthDetailsProps {
   authPage: 0 | 1;
@@ -32,26 +30,22 @@ export default function AuthDetails({
 }: AuthDetailsProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const dispatch: AppDispatch = useDispatch();
+  const { signIn, signUp } = useAuth();
 
   const handleLogin = () => {
-    dispatch(login({ email, password }))
-      .unwrap()
-      .then(() => console.log("login successful"))
-      .catch(() => console.log("login unsuccessful"));
+    signIn(email.trim(), password)
+      .then(() => setMenuMessage(""))
+      .catch(() => setMenuMessage("Login failed. Check your details."));
   };
 
   const handleRegister = () => {
-    dispatch(register({ email, password }))
-      .unwrap()
+    signUp(email.trim(), password)
       .then(() => {
-        console.log("register successful");
         setDetailsPage(false);
         setAuthPage(1);
-        setMenuMessage("Creating account...");
+        setMenuMessage("Check your email to confirm.");
       })
-      .catch(() => console.log("register unsuccessful"));
+      .catch(() => setMenuMessage("Sign up failed. Try again."));
   };
 
   return (

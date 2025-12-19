@@ -1,43 +1,38 @@
-import { FIREBASE_AUTH, FIREBASE_DB } from "../../firebaseConfig";
-import { updateProfile } from "firebase/auth";
-import {
-  getFirestore,
-  doc,
-  updateDoc,
-  query,
-  collection,
-  where,
-  getDocs,
-  getDoc,
-  deleteDoc,
-  setDoc,
-} from "firebase/firestore";
+import { supabase } from "../../supabaseClient";
 import { saveMediaToStorage } from "./utils";
 import { SearchUser, User } from "../../types";
 
 export const saveUserProfileImage = (image: string) =>
   new Promise<void>(async (resolve, reject) => {
     try {
-      if (FIREBASE_AUTH.currentUser) {
-        const downloadURL = await saveMediaToStorage(
-          image,
-          `profileImage/${FIREBASE_AUTH.currentUser.uid}`,
-        );
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-        const db = getFirestore();
-        const userDoc = doc(db, "user", FIREBASE_AUTH.currentUser.uid);
-
-        await updateDoc(userDoc, {
-          photoURL: downloadURL,
-        });
-
-        // Also update the user profile in Firebase Auth if needed
-        await updateProfile(FIREBASE_AUTH.currentUser, {
-          photoURL: downloadURL,
-        });
-
-        resolve();
+      if (error || !user) {
+        throw new Error("User is not authenticated");
       }
+
+      const downloadURL = await saveMediaToStorage(
+        image,
+        `profileImage/${user.id}`,
+      );
+
+      const { error: updateError } = await supabase
+        .from("user")
+        .update({ photoURL: downloadURL })
+        .eq("uid", user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      await supabase.auth.updateUser({
+        data: { photoURL: downloadURL },
+      });
+
+      resolve();
     } catch (error) {
       console.error("Failed to save user profile image: ", error);
       reject(error);
@@ -47,15 +42,28 @@ export const saveUserProfileImage = (image: string) =>
 export const saveUserField = (field: string, value: string) =>
   new Promise<void>(async (resolve, reject) => {
     try {
-      if (FIREBASE_AUTH.currentUser) {
-        const userDoc = doc(FIREBASE_DB, "user", FIREBASE_AUTH.currentUser.uid);
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-        let obj: { [key: string]: string } = {};
-        obj[field] = value;
-
-        await updateDoc(userDoc, obj);
-        resolve();
+      if (error || !user) {
+        throw new Error("User is not authenticated");
       }
+
+      const updatePayload: Record<string, string> = {};
+      updatePayload[field] = value;
+
+      const { error: updateError } = await supabase
+        .from("user")
+        .update(updatePayload)
+        .eq("uid", user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      resolve();
     } catch (error) {
       console.error("Failed to save user field: ", error);
       reject(error);
@@ -70,19 +78,17 @@ export const queryUsersByEmail = (email: string): Promise<SearchUser[]> => {
         return;
       }
 
-      const q = query(
-        collection(FIREBASE_DB, "user"),
-        where("email", ">=", email),
-        where("email", "<=", email + "\uf8ff"),
-      );
+      const { data, error } = await supabase
+        .from("user")
+        .select("*")
+        .ilike("email", `${email}%`)
+        .limit(15);
 
-      const querySnapshot = await getDocs(q);
-      const users = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const id = doc.id;
-        return { id, ...data } as SearchUser;
-      });
+      if (error) {
+        throw error;
+      }
 
+      const users = (data || []).map((item) => ({ id: item.uid, ...item })) as SearchUser[];
       resolve(users);
     } catch (error) {
       console.error("Failed to query users: ", error);
@@ -99,12 +105,17 @@ export const queryUsersByEmail = (email: string): Promise<SearchUser[]> => {
  */
 export const getUserById = async (id: string): Promise<User | null> => {
   try {
-    const docSnapshot = await getDoc(doc(FIREBASE_DB, "user", id));
-    if (docSnapshot.exists()) {
-      return docSnapshot.data() as User;
-    } else {
-      return null;
+    const { data, error } = await supabase
+      .from("user")
+      .select("*")
+      .eq("uid", id)
+      .single();
+
+    if (error) {
+      throw error;
     }
+
+    return (data as User) || null;
   } catch (error) {
     throw new Error(String(error));
   }
@@ -118,16 +129,18 @@ export const getUserById = async (id: string): Promise<User | null> => {
  * @returns {Boolean} if true means the user is indeed following the other User
  */
 export const getIsFollowing = async (userId: string, otherUserId: string) => {
-  const userDocRef = doc(FIREBASE_DB, "user", userId, "following", otherUserId);
-
   try {
-    const docSnap = await getDoc(userDocRef);
+    const { data, error } = await supabase
+      .from("following")
+      .select("follower_id")
+      .eq("follower_id", userId)
+      .eq("user_id", otherUserId);
 
-    if (docSnap.exists()) {
-      return true;
-    } else {
-      return false;
+    if (error) {
+      throw error;
     }
+
+    return (data?.length || 0) > 0;
   } catch (error) {
     console.error("Error checking following status: ", error);
     return false;
@@ -150,29 +163,34 @@ export const changeFollowState = async ({
   otherUserId: string;
   isFollowing: boolean;
 }) => {
-  const currentUserUid = FIREBASE_AUTH.currentUser
-    ? FIREBASE_AUTH.currentUser.uid
-    : null;
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  if (!currentUserUid) {
+  const currentUserUid = user?.id ?? null;
+
+  if (!currentUserUid || error) {
     console.error("No current user");
     return false;
   }
 
-  const followingDocRef = doc(
-    FIREBASE_DB,
-    "user",
-    currentUserUid,
-    "following",
-    otherUserId,
-  );
-
   try {
     if (isFollowing) {
-      await deleteDoc(followingDocRef);
+      const { error: deleteError } = await supabase
+        .from("following")
+        .delete()
+        .eq("follower_id", currentUserUid)
+        .eq("user_id", otherUserId);
+
+      if (deleteError) throw deleteError;
       return true;
     } else {
-      await setDoc(followingDocRef, {});
+      const { error: insertError } = await supabase
+        .from("following")
+        .insert({ follower_id: currentUserUid, user_id: otherUserId });
+
+      if (insertError) throw insertError;
       return true;
     }
   } catch (error) {
