@@ -4,3 +4,4 @@ backend/.env
 .expo/
 .expo/
 change-log/
+backend/Supabase/
