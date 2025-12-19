@@ -32,7 +32,10 @@ export default function CameraScreen() {
   const [galleryItems, setGalleryItems] = useState<MediaLibrary.Asset[]>([]);
 
   const [cameraRef, setCameraRef] = useState<Camera | null>(null);
-  const [cameraType, setCameraType] = useState(CameraType.back);
+  // Guard against CameraType being undefined in dev/Go by providing safe defaults
+  const defaultBack = (CameraType as any)?.back ?? "back";
+  const defaultFront = (CameraType as any)?.front ?? "front";
+  const [cameraType, setCameraType] = useState<any>(defaultBack);
   const [cameraFlash, setCameraFlash] = useState(FlashMode.off);
 
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -141,9 +144,7 @@ export default function CameraScreen() {
           style={styles.sideBarButton}
           onPress={() =>
             setCameraType(
-              cameraType === CameraType.back
-                ? CameraType.front
-                : CameraType.back,
+              cameraType === defaultBack ? defaultFront : defaultBack,
             )
           }
         >
