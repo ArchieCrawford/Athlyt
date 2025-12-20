@@ -1,6 +1,5 @@
 // Edge Function: create a direct-upload URL for Mux
 // Expects env MUX_TOKEN_ID, MUX_TOKEN_SECRET
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const muxTokenId = Deno.env.get("MUX_TOKEN_ID");

@@ -19,6 +19,8 @@
   "exclude": [
     "node_modules",
     "backend/**",
+    "../backend/**",
+    "../backend/Supabase/**",
     "**/supabase/**",
     "change-log/**"
   ]

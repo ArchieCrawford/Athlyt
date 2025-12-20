@@ -1,6 +1,5 @@
 // Edge Function: Mux webhook handler to persist playback_id/asset_id on posts
 // Expects env SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (aliases supported)
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.6";
 
