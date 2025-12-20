@@ -132,9 +132,9 @@ export const getIsFollowing = async (userId: string, otherUserId: string) => {
   try {
     const { data, error } = await supabase
       .from("following")
-      .select("follower_id")
-      .eq("follower_id", userId)
-      .eq("user_id", otherUserId);
+      .select("follower")
+      .eq("follower", userId)
+      .eq("following", otherUserId);
 
     if (error) {
       throw error;
@@ -180,15 +180,15 @@ export const changeFollowState = async ({
       const { error: deleteError } = await supabase
         .from("following")
         .delete()
-        .eq("follower_id", currentUserUid)
-        .eq("user_id", otherUserId);
+        .eq("follower", currentUserUid)
+        .eq("following", otherUserId);
 
       if (deleteError) throw deleteError;
       return true;
     } else {
       const { error: insertError } = await supabase
         .from("following")
-        .insert({ follower_id: currentUserUid, user_id: otherUserId });
+        .insert({ follower: currentUserUid, following: otherUserId });
 
       if (insertError) throw insertError;
       return true;

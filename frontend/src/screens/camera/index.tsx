@@ -25,6 +25,7 @@ import { RootStackParamList } from "../../navigation/main";
  * @returns Functional Component
  */
 export default function CameraScreen() {
+  console.log("CameraScreen loaded: 2025-12-19 v2");
   const [hasCameraPermissions, setHasCameraPermissions] = useState(false);
   const [hasAudioPermissions, setHasAudioPermissions] = useState(false);
   const [hasGalleryPermissions, setHasGalleryPermissions] = useState(false);
@@ -70,7 +71,8 @@ export default function CameraScreen() {
       try {
         const options = {
           maxDuration: 60,
-          quality: Camera.Constants.VideoQuality["480"],
+          // Guard in case Camera.Constants is undefined in Expo Go
+          quality: (Camera as any)?.Constants?.VideoQuality?.["480"] ?? ("480p" as any),
         };
         const videoRecordPromise = cameraRef.recordAsync(options);
         if (videoRecordPromise) {
@@ -123,7 +125,13 @@ export default function CameraScreen() {
   };
 
   if (!hasCameraPermissions || !hasAudioPermissions || !hasGalleryPermissions) {
-    return <View></View>;
+    return (
+      <View>
+        <Text>
+          Camera:{String(hasCameraPermissions)} Audio:{String(hasAudioPermissions)} Gallery:{String(hasGalleryPermissions)}
+        </Text>
+      </View>
+    );
   }
 
   return (

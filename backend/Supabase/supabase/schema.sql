@@ -1,5 +1,8 @@
--- Supabase schema to replace Firebase backend
--- Run this inside your Supabase project's SQL editor
+-- Supabase schema for Athlyt (authoritative)
+-- Run in Supabase SQL editor or psql connected to your project.
+-- Requires: auth.users exists; pgcrypto for gen_random_uuid.
+
+create extension if not exists "pgcrypto";
 
 -- Profiles
 create table if not exists public."user" (
@@ -10,7 +13,7 @@ create table if not exists public."user" (
   "followingCount" integer default 0,
   "followersCount" integer default 0,
   "likesCount" integer default 0,
-  "createdAt" timestamptz default now()
+  created_at timestamptz default now()
 );
 
 -- Posts
@@ -26,6 +29,7 @@ create table if not exists public.post (
   description text,
   "likesCount" integer default 0,
   "commentsCount" integer default 0,
+  created_at timestamptz default now(),
   creation timestamptz default now()
 );
 
@@ -43,15 +47,15 @@ create table if not exists public.post_comments (
   post_id uuid references public.post(id) on delete cascade,
   creator uuid references public."user"(uid) on delete cascade,
   comment text not null,
-  creation timestamptz default now()
+  created_at timestamptz default now()
 );
 
 -- Follows
 create table if not exists public.following (
-  follower_id uuid references public."user"(uid) on delete cascade,
-  user_id uuid references public."user"(uid) on delete cascade,
+  follower uuid references public."user"(uid) on delete cascade,
+  following uuid references public."user"(uid) on delete cascade,
   created_at timestamptz default now(),
-  primary key (follower_id, user_id)
+  primary key (follower, following)
 );
 
 -- Chats and messages
@@ -67,7 +71,7 @@ create table if not exists public.messages (
   chat_id uuid references public.chats(id) on delete cascade,
   creator uuid references public."user"(uid) on delete cascade,
   message text not null,
-  creation timestamptz default now()
+  created_at timestamptz default now()
 );
 
 -- Trigger: create profile row when a new auth user is created
@@ -137,12 +141,12 @@ create or replace function public.handle_follow_counts()
 returns trigger as $$
 begin
   if tg_op = 'INSERT' then
-    update public."user" set "followersCount" = "followersCount" + 1 where uid = new.user_id;
-    update public."user" set "followingCount" = "followingCount" + 1 where uid = new.follower_id;
+    update public."user" set "followersCount" = "followersCount" + 1 where uid = new.following;
+    update public."user" set "followingCount" = "followingCount" + 1 where uid = new.follower;
     return new;
   elsif tg_op = 'DELETE' then
-    update public."user" set "followersCount" = greatest(0, "followersCount" - 1) where uid = old.user_id;
-    update public."user" set "followingCount" = greatest(0, "followingCount" - 1) where uid = old.follower_id;
+    update public."user" set "followersCount" = greatest(0, "followersCount" - 1) where uid = old.following;
+    update public."user" set "followingCount" = greatest(0, "followingCount" - 1) where uid = old.follower;
     return old;
   end if;
   return null;
@@ -186,8 +190,8 @@ create policy "Comment as self" on public.post_comments for insert with check (a
 create policy "Remove own comment" on public.post_comments for delete using (auth.uid() = creator);
 
 create policy "Read following" on public.following for select using (true);
-create policy "Follow as self" on public.following for insert with check (auth.uid() = follower_id);
-create policy "Unfollow as self" on public.following for delete using (auth.uid() = follower_id);
+create policy "Follow as self" on public.following for insert with check (auth.uid() = follower);
+create policy "Unfollow as self" on public.following for delete using (auth.uid() = follower);
 
 create policy "Read chats when member" on public.chats
   for select using (auth.uid() = any(members));
