@@ -97,7 +97,8 @@ export default function CameraScreen() {
 
   const pickFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      // Use new MediaType API (MediaTypeOptions is deprecated)
+      mediaTypes: [ImagePicker.MediaType.Video],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 1,

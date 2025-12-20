@@ -1,5 +1,9 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { ResizeMode, Video } from "expo-av";
+import {
+  VideoResizeMode,
+  VideoSource,
+  VideoView,
+} from "expo-video";
 import styles from "./styles";
 import { Post } from "../../../../types";
 import { useUser } from "../../../hooks/useUser";
@@ -20,7 +24,7 @@ export interface PostSingleHandles {
  */
 export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
   ({ item }, parentRef) => {
-    const ref = useRef<Video>(null);
+    const ref = useRef<VideoView>(null);
     const user = useUser(item.creator).data;
 
     useImperativeHandle(parentRef, () => ({
@@ -51,10 +55,10 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
       }
       try {
         const status = await ref.current.getStatusAsync();
-        if (status && "isPlaying" in status && status.isPlaying) {
+        if (status?.isPlaying) {
           return;
         }
-        await ref.current.playAsync();
+        await ref.current.play();
       } catch (e) {
         console.log("An error occurred:", e);
       }
@@ -72,10 +76,10 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
       }
       try {
         const status = await ref.current.getStatusAsync();
-        if (status && "isPlaying" in status && !status.isPlaying) {
+        if (status && !status.isPlaying) {
           return;
         }
-        await ref.current.stopAsync();
+        await ref.current.pause();
       } catch (e) {
         console.log("An error occurred:", e);
       }
@@ -95,7 +99,7 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
         return;
       }
       try {
-        await ref.current.unloadAsync();
+        await ref.current.unload();
       } catch (e) {
         console.log(e);
       }
@@ -104,18 +108,14 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
     return (
       <>
         {user && <PostSingleOverlay user={user} post={item} />}
-        <Video
+        <VideoView
           ref={ref}
           style={styles.container}
-          resizeMode={ResizeMode.COVER}
-          shouldPlay={false}
+          contentFit={VideoResizeMode.COVER}
           isLooping
-          usePoster
-          posterSource={{ uri: item.media[1] }}
-          posterStyle={{ resizeMode: "cover", height: "100%" }}
-          source={{
-            uri: item.media[0],
-          }}
+          poster={item.media[1]}
+          posterResizeMode="cover"
+          source={item.media[0] as VideoSource}
         />
       </>
     );
