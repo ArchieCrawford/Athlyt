@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { View } from "react-native";
 import AuthDetails from "../../components/auth/details";
 import AuthMenu from "../../components/auth/menu";
-import styles from "./styles";
+import Screen from "../../components/layout/Screen";
 
 export default function AuthScreen({ route }: any) {
   const mode = route?.params?.mode as "login" | "signup" | undefined;
@@ -17,7 +16,7 @@ export default function AuthScreen({ route }: any) {
   }, [mode]);
 
   return (
-    <View style={styles.container}>
+    <Screen>
       {detailsPage ? (
         <AuthDetails
           authPage={authPage}
@@ -33,6 +32,6 @@ export default function AuthScreen({ route }: any) {
           setDetailsPage={setDetailsPage}
         />
       )}
-    </View>
+    </Screen>
   );
 }

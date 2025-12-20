@@ -1,7 +1,4 @@
-import { View, Text, Image, TouchableOpacity } from "react-native";
-import { Avatar } from "react-native-paper";
-import { buttonStyles } from "../../../styles";
-import styles from "./styles";
+import { View } from "react-native";
 import { RootState } from "../../../redux/store";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -12,6 +9,10 @@ import { useFollowingMutation } from "../../../hooks/useFollowingMutation";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { User } from "../../../types";
+import { useTheme } from "../../../theme/useTheme";
+import AppText from "../../ui/AppText";
+import Button from "../../ui/Button";
+import Avatar from "../../ui/Avatar";
 
 /**
  * Renders the header of the user profile and
@@ -25,6 +26,7 @@ import { User } from "../../../types";
 export default function ProfileHeader({ user }: { user: User }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const theme = useTheme();
   const [followersCount, setFollowersCount] = useState(
     user?.followersCount || 0,
   );
@@ -46,19 +48,21 @@ export default function ProfileHeader({ user }: { user: User }) {
   const renderFollowButton = () => {
     if (isFollowing) {
       return (
-        <View style={{ flexDirection: "row" }}>
-          <TouchableOpacity
-            style={buttonStyles.grayOutlinedButton}
+        <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+          <Button
+            title="Message"
+            variant="secondary"
+            fullWidth={false}
             onPress={() => {
               if (user?.uid) {
                 navigation.navigate("chatSingle", { contactId: user.uid });
               }
             }}
-          >
-            <Text style={buttonStyles.grayOutlinedButtonText}>Message</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={buttonStyles.grayOutlinedIconButton}
+          />
+          <Button
+            variant="ghost"
+            fullWidth={false}
+            icon={<Feather name="user-check" size={20} color={theme.colors.text} />}
             onPress={() => {
               if (user?.uid) {
                 isFollowingMutation.mutate({
@@ -68,15 +72,14 @@ export default function ProfileHeader({ user }: { user: User }) {
                 setFollowersCount(followersCount - 1);
               }
             }}
-          >
-            <Feather name="user-check" size={20} />
-          </TouchableOpacity>
+          />
         </View>
       );
     } else {
       return (
-        <TouchableOpacity
-          style={buttonStyles.filledButton}
+        <Button
+          title="Follow"
+          fullWidth={false}
           onPress={() => {
             if (user?.uid) {
               isFollowingMutation.mutate({
@@ -86,45 +89,60 @@ export default function ProfileHeader({ user }: { user: User }) {
               setFollowersCount(followersCount + 1);
             }
           }}
-        >
-          <Text style={buttonStyles.filledButtonText}>Follow</Text>
-        </TouchableOpacity>
+        />
       );
     }
   };
 
   return (
     user && (
-      <View style={styles.container}>
-        {user.photoURL ? (
-          <Image style={styles.avatar} source={{ uri: user.photoURL }} />
-        ) : (
-          <Avatar.Icon size={80} icon={"account"} />
-        )}
-        <Text style={styles.emailText}>{user.displayName || user.email}</Text>
-        <View style={styles.counterContainer}>
-          <View style={styles.counterItemContainer}>
-            <Text style={styles.counterNumberText}>{user.followingCount}</Text>
-            <Text style={styles.counterLabelText}>Following</Text>
+      <View
+        style={{
+          paddingVertical: theme.spacing.lg,
+          alignItems: "center",
+          gap: theme.spacing.md,
+        }}
+      >
+        <Avatar
+          size={88}
+          uri={user.photoURL}
+          label={user.displayName || user.email}
+          accentRing={currentUserId !== user.uid}
+        />
+        <AppText variant="subtitle">{user.displayName || user.email}</AppText>
+        <View
+          style={{
+            flexDirection: "row",
+            gap: theme.spacing.xl,
+            marginTop: theme.spacing.sm,
+          }}
+        >
+          <View style={{ alignItems: "center" }}>
+            <AppText variant="subtitle">{user.followingCount}</AppText>
+            <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+              Following
+            </AppText>
           </View>
-          <View style={styles.counterItemContainer}>
-            <Text style={styles.counterNumberText}>{followersCount}</Text>
-            <Text style={styles.counterLabelText}>Followers</Text>
+          <View style={{ alignItems: "center" }}>
+            <AppText variant="subtitle">{followersCount}</AppText>
+            <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+              Followers
+            </AppText>
           </View>
-          <View style={styles.counterItemContainer}>
-            <Text style={styles.counterNumberText}>{user.likesCount}</Text>
-            <Text style={styles.counterLabelText}>Likes</Text>
+          <View style={{ alignItems: "center" }}>
+            <AppText variant="subtitle">{user.likesCount}</AppText>
+            <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+              Likes
+            </AppText>
           </View>
         </View>
         {currentUserId === user.uid ? (
-          <TouchableOpacity
-            style={buttonStyles.grayOutlinedButton}
+          <Button
+            title="Edit Profile"
+            variant="secondary"
+            fullWidth={false}
             onPress={() => navigation.navigate("editProfile")}
-          >
-            <Text style={buttonStyles.grayOutlinedButtonText}>
-              Edit Profile
-            </Text>
-          </TouchableOpacity>
+          />
         ) : (
           renderFollowButton()
         )}

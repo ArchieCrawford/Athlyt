@@ -1,23 +1,40 @@
-import { View, Text, TouchableOpacity } from "react-native";
-import styles from "./styles";
+import { View, Pressable } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { RootState } from "../../../redux/store";
+import { useTheme } from "../../../theme/useTheme";
+import AppText from "../../ui/AppText";
 
 export default function ProfileNavBar({
   user,
 }: {
   user: RootState["auth"]["currentUser"];
 }) {
+  const theme = useTheme();
+
   return (
     user && (
-      <View style={styles.container}>
-        <TouchableOpacity>
-          <Feather name="search" size={20} />
-        </TouchableOpacity>
-        <Text style={styles.text}>{user.email}</Text>
-        <TouchableOpacity>
-          <Feather name="menu" size={24} />
-        </TouchableOpacity>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: theme.spacing.lg,
+          paddingVertical: theme.spacing.md,
+          backgroundColor: theme.colors.bg,
+        }}
+      >
+        <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+          <Feather name="search" size={20} color={theme.colors.text} />
+        </Pressable>
+        <AppText
+          variant="subtitle"
+          style={{ flex: 1, textAlign: "center" }}
+          numberOfLines={1}
+        >
+          {user.email}
+        </AppText>
+        <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+          <Feather name="menu" size={22} color={theme.colors.text} />
+        </Pressable>
       </View>
     )
   );

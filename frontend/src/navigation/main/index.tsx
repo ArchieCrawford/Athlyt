@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -11,10 +11,11 @@ import SavePostScreen from "../../screens/savePost";
 import EditProfileScreen from "../../screens/profile/edit";
 import EditProfileFieldScreen from "../../screens/profile/edit/field";
 import Modal from "../../components/modal";
-import FeedScreen from "../../screens/feed";
+import FeedScreen from "../../features/feed/FeedScreen";
 import ProfileScreen from "../../screens/profile";
 import ChatSingleScreen from "../../screens/chat/single";
 import useAuth from "../../hooks/useAuth";
+import { useTheme } from "../../theme/useTheme";
 
 export type RootStackParamList = {
   landing: undefined;
@@ -32,6 +33,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function Route() {
   const { loading } = useAuth();
+  const theme = useTheme();
   const currentUserObj = useSelector((state: RootState) => state.auth);
   const initialRouteName = currentUserObj.currentUser ? "home" : "landing";
 
@@ -39,9 +41,31 @@ export default function Route() {
     return <View></View>;
   }
 
+  const navTheme = useMemo(
+    () => ({
+      dark: true,
+      colors: {
+        primary: theme.colors.accent,
+        background: theme.colors.bg,
+        card: theme.colors.surface,
+        text: theme.colors.text,
+        border: theme.colors.borderSubtle,
+        notification: theme.colors.accent,
+      },
+    }),
+    [theme],
+  );
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRouteName}>
+    <NavigationContainer theme={navTheme}>
+      <Stack.Navigator
+        initialRouteName={initialRouteName}
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.colors.bg },
+          headerTintColor: theme.colors.text,
+          contentStyle: { backgroundColor: theme.colors.bg },
+        }}
+      >
         {currentUserObj.currentUser == null ? (
           <>
             <Stack.Screen

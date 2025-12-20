@@ -1,8 +1,11 @@
 import { Dispatch, SetStateAction, useState } from "react";
-import { View, Text, TouchableOpacity, TextInput } from "react-native";
+import { Pressable, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import styles from "./styles";
 import useAuth from "../../../hooks/useAuth";
+import { useTheme } from "../../../theme/useTheme";
+import AppText from "../../ui/AppText";
+import Button from "../../ui/Button";
+import Input from "../../ui/Input";
 
 export interface AuthDetailsProps {
   authPage: 0 | 1;
@@ -28,6 +31,7 @@ export default function AuthDetails({
   setMenuMessage,
   setDetailsPage,
 }: AuthDetailsProps) {
+  const theme = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { signIn, signUp } = useAuth();
@@ -55,30 +59,43 @@ export default function AuthDetails({
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={() => setDetailsPage(false)}>
-        <Feather name="arrow-left" size={24} color="black" />
-      </TouchableOpacity>
-      <TextInput
-        onChangeText={(text) => setEmail(text)}
-        style={styles.textInput}
-        placeholder="Email"
-      />
-      <TextInput
-        onChangeText={(text) => setPassword(text)}
-        style={styles.textInput}
-        secureTextEntry
-        placeholder="Password"
-      />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => (authPage == 0 ? handleLogin() : handleRegister())}
+    <View style={{ flex: 1, gap: theme.spacing.lg }}>
+      <Pressable
+        onPress={() => setDetailsPage(false)}
+        style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
       >
-        <Text style={styles.buttonText}>
-          {authPage == 0 ? "Sign In" : "Sign Up"}
-        </Text>
-      </TouchableOpacity>
+        <Feather name="arrow-left" size={22} color={theme.colors.text} />
+      </Pressable>
+
+      <View style={{ gap: theme.spacing.md }}>
+        <AppText variant="subtitle">
+          {authPage == 0 ? "Welcome back" : "Create your account"}
+        </AppText>
+        <AppText variant="muted">
+          {authPage == 0
+            ? "Train, post, get discovered."
+            : "Join the athlete network."}
+        </AppText>
+      </View>
+
+      <View style={{ gap: theme.spacing.md }}>
+        <Input
+          onChangeText={(text) => setEmail(text)}
+          placeholder="Email"
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <Input
+          onChangeText={(text) => setPassword(text)}
+          secureTextEntry
+          placeholder="Password"
+        />
+      </View>
+
+      <Button
+        title={authPage == 0 ? "Sign In" : "Sign Up"}
+        onPress={() => (authPage == 0 ? handleLogin() : handleRegister())}
+      />
     </View>
   );
 }

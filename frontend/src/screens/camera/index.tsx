@@ -5,7 +5,6 @@ import {
   requestCameraPermissionsAsync,
   requestMicrophonePermissionsAsync,
   CameraType,
-  FlashMode,
 } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
@@ -37,7 +36,11 @@ export default function CameraScreen() {
   const defaultBack = (CameraType as any)?.back ?? "back";
   const defaultFront = (CameraType as any)?.front ?? "front";
   const [cameraType, setCameraType] = useState<any>(defaultBack);
-  const [cameraFlash, setCameraFlash] = useState(FlashMode.off);
+  // Use runtime-available FlashMode or safe string fallbacks
+  const flashModes = (Camera as any)?.Constants?.FlashMode ?? {};
+  const flashOff = flashModes.off ?? "off";
+  const flashTorch = flashModes.torch ?? "torch";
+  const [cameraFlash, setCameraFlash] = useState<any>(flashOff);
 
   const [isCameraReady, setIsCameraReady] = useState(false);
   const isFocused = useIsFocused();
@@ -165,7 +168,7 @@ export default function CameraScreen() {
           style={styles.sideBarButton}
           onPress={() =>
             setCameraFlash(
-              cameraFlash === FlashMode.off ? FlashMode.torch : FlashMode.off,
+              cameraFlash === flashOff ? flashTorch : flashOff,
             )
           }
         >

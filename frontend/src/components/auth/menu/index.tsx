@@ -1,7 +1,9 @@
 import { Dispatch, SetStateAction } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import styles from "./styles";
+import { Pressable, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useTheme } from "../../../theme/useTheme";
+import AppText from "../../ui/AppText";
+import Button from "../../ui/Button";
 
 export interface AuthMenuProps {
   authPage: number;
@@ -29,39 +31,47 @@ export default function AuthMenu({
   setAuthPage,
   setDetailsPage,
 }: AuthMenuProps) {
+  const theme = useTheme();
+
   return (
-    <View style={styles.container}>
-      <View style={styles.containerMain}>
-        <Text style={styles.headerText}>
+    <View style={{ flex: 1, justifyContent: "space-between" }}>
+      <View style={{ gap: theme.spacing.lg }}>
+        <AppText variant="title">
           {authPage == 0 ? "Sign In" : "Sign Up"}
-        </Text>
-        {menuMessage && <Text style={styles.menuMessage}>{menuMessage}</Text>}
-        <TouchableOpacity
-          style={styles.providerButton}
+        </AppText>
+        {menuMessage ? (
+          <AppText variant="muted">{menuMessage}</AppText>
+        ) : null}
+        <Button
+          title="Use Email"
           onPress={() => setDetailsPage(true)}
-        >
-          <Feather name="user" size={24} color="black" />
-          <Text style={styles.providerButtonText}>Use Email</Text>
-          <View />
-        </TouchableOpacity>
+          icon={<Feather name="user" size={20} color={theme.colors.text} />}
+        />
       </View>
 
-      <TouchableOpacity
-        style={styles.containerBottomButton}
+      <Pressable
         onPress={() => (authPage == 0 ? setAuthPage(1) : setAuthPage(0))}
+        style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
       >
-        {authPage == 0 ? (
-          <Text>
-            Don't have an account?{" "}
-            <Text style={styles.bottomButtonText}>Sign Up</Text>
-          </Text>
-        ) : (
-          <Text>
-            Already have an account?{" "}
-            <Text style={styles.bottomButtonText}>Sign In</Text>
-          </Text>
-        )}
-      </TouchableOpacity>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: theme.spacing.xs,
+          }}
+        >
+          <AppText variant="body">
+            {authPage == 0 ? "Don't have an account?" : "Already have an account?"}
+          </AppText>
+          <AppText
+            variant="body"
+            style={{ color: theme.colors.accent, fontWeight: theme.type.fontWeights.bold }}
+          >
+            {authPage == 0 ? "Sign Up" : "Sign In"}
+          </AppText>
+        </View>
+      </Pressable>
     </View>
   );
 }

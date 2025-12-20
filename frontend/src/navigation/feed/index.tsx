@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import FeedScreen from "../../screens/feed";
+import FeedScreen from "../../features/feed/FeedScreen";
 import ProfileScreen from "../../screens/profile";
 import { FeedStackParamList } from "./types";
 import { CurrentUserProfileItemInViewContext } from "./context";

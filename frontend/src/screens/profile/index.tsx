@@ -1,9 +1,7 @@
-import { ScrollView } from "react-native";
-import styles from "./styles";
+import { ScrollView, View } from "react-native";
 import ProfileNavBar from "../../components/profile/navBar";
 import ProfileHeader from "../../components/profile/header";
 import ProfilePostList from "../../components/profile/postList";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useContext, useEffect } from "react";
 import { FeedStackParamList } from "../../navigation/feed/types";
 import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/context";
@@ -13,6 +11,8 @@ import { Post } from "../../../types";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
+import Screen from "../../components/layout/Screen";
+import { useTheme } from "../../theme/useTheme";
 
 type ProfileScreenRouteProp =
   | RouteProp<RootStackParamList, "profileOther">
@@ -24,6 +24,7 @@ export default function ProfileScreen({
 }: {
   route: ProfileScreenRouteProp;
 }) {
+  const theme = useTheme();
   const { initialUserId } = route.params;
   const [userPosts, setUserPosts] = useState<Post[]>([]);
 
@@ -48,12 +49,19 @@ export default function ProfileScreen({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <Screen padding={false}>
       <ProfileNavBar user={user} />
-      <ScrollView>
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: theme.spacing.xl,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         <ProfileHeader user={user} />
-        <ProfilePostList posts={userPosts} />
+        <View style={{ paddingHorizontal: theme.spacing.lg }}>
+          <ProfilePostList posts={userPosts} />
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }

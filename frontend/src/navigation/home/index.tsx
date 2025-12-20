@@ -8,6 +8,8 @@ import ChatScreen from "../../screens/chat/list";
 import { useChats } from "../../hooks/useChats";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
+import { useTheme } from "../../theme/useTheme";
+import { StyleSheet } from "react-native";
 
 export type HomeStackParamList = {
   feed: undefined;
@@ -21,13 +23,24 @@ const Tab = createMaterialBottomTabNavigator<HomeStackParamList>();
 
 export default function HomeScreen() {
   useChats();
+  const theme = useTheme();
   const currentUserId = useSelector(
     (state: RootState) => state.auth.currentUser?.uid,
   );
 
   return (
     <Tab.Navigator
-      barStyle={{ backgroundColor: "black" }}
+      shifting={false}
+      activeColor={theme.colors.text}
+      inactiveColor={theme.colors.textMuted}
+      barStyle={{
+        backgroundColor: theme.colors.surface,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: theme.colors.borderSubtle,
+        height: theme.tabBar.height,
+        paddingBottom: theme.tabBar.paddingBottom,
+        paddingTop: theme.tabBar.paddingTop,
+      }}
       initialRouteName="feed"
     >
       <Tab.Screen
