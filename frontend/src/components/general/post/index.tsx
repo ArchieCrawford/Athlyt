@@ -1,9 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import {
-  VideoResizeMode,
-  VideoSource,
-  VideoView,
-} from "expo-video";
+import { VideoSource, VideoView } from "expo-video";
 import styles from "./styles";
 import { Post } from "../../../../types";
 import { useUser } from "../../../hooks/useUser";
@@ -111,7 +107,7 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
         <VideoView
           ref={ref}
           style={styles.container}
-          contentFit={VideoResizeMode.COVER}
+          contentFit="cover"
           isLooping
           poster={item.media[1]}
           posterResizeMode="cover"
