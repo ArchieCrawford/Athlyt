@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { Animated, ImageBackground, StyleSheet, View } from "react-native";
-import { VideoSource, VideoView } from "expo-video";
+import { useVideoPlayer, VideoSource, VideoView } from "expo-video";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
@@ -34,66 +34,12 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
   ({ item, height, width }, parentRef) => {
     const theme = useTheme();
     const insets = useSafeAreaInsets();
-    const videoRef = useRef<VideoView>(null);
     const user = useUser(item.creator).data;
     const [liked, setLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(item.likesCount || 0);
 
     const heartScale = useRef(new Animated.Value(0.6)).current;
     const heartOpacity = useRef(new Animated.Value(0)).current;
-
-    useImperativeHandle(parentRef, () => ({
-      play,
-      stop,
-      unload,
-    }));
-
-    useEffect(() => {
-      return () => {
-        unload().catch(() => {});
-      };
-    }, []);
-
-    const play = async () => {
-      if (!videoRef.current) {
-        return;
-      }
-      try {
-        const status = await videoRef.current.getStatusAsync();
-        if (status?.isPlaying) {
-          return;
-        }
-        await videoRef.current.play();
-      } catch (error) {
-        console.log("Video play error:", error);
-      }
-    };
-
-    const stop = async () => {
-      if (!videoRef.current) {
-        return;
-      }
-      try {
-        const status = await videoRef.current.getStatusAsync();
-        if (status && !status.isPlaying) {
-          return;
-        }
-        await videoRef.current.pause();
-      } catch (error) {
-        console.log("Video pause error:", error);
-      }
-    };
-
-    const unload = async () => {
-      if (!videoRef.current) {
-        return;
-      }
-      try {
-        await videoRef.current.unload();
-      } catch (error) {
-        console.log("Video unload error:", error);
-      }
-    };
 
     const triggerHeart = () => {
       heartScale.setValue(0.6);
@@ -145,6 +91,62 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
     const videoUri = item.media?.[0];
     const username = user?.displayName || user?.email || item.creator;
     const avatarUri = user?.photoURL;
+
+    const player = useVideoPlayer(videoUri as VideoSource, (playerInstance) => {
+      playerInstance.loop = true;
+    });
+
+    const play = async () => {
+      if (!videoUri) {
+        return;
+      }
+      try {
+        if (player.playing) {
+          return;
+        }
+        player.play();
+      } catch (error) {
+        console.log("Video play error:", error);
+      }
+    };
+
+    const stop = async () => {
+      if (!videoUri) {
+        return;
+      }
+      try {
+        if (!player.playing) {
+          return;
+        }
+        player.pause();
+      } catch (error) {
+        console.log("Video pause error:", error);
+      }
+    };
+
+    const unload = async () => {
+      if (!videoUri) {
+        return;
+      }
+      try {
+        player.pause();
+        player.currentTime = 0;
+      } catch (error) {
+        console.log("Video unload error:", error);
+      }
+    };
+
+    useImperativeHandle(parentRef, () => ({
+      play,
+      stop,
+      unload,
+    }));
+
+    useEffect(() => {
+      return () => {
+        unload().catch(() => {});
+      };
+    }, []);
 
     const styles = useMemo(
       () =>
@@ -209,13 +211,10 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
           >
             {videoUri ? (
               <VideoView
-                ref={videoRef}
                 style={styles.video}
                 contentFit="cover"
-                isLooping
-                poster={posterUri}
-                posterResizeMode="cover"
-                source={videoUri as VideoSource}
+                nativeControls={false}
+                player={player}
               />
             ) : null}
             <LinearGradient

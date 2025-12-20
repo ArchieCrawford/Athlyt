@@ -1,6 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, Image, Pressable } from "react-native";
-import { Camera } from "expo-camera";
+import {
+  CameraType,
+  CameraView,
+  CameraViewRef,
+  useCameraPermissions,
+  useMicrophonePermissions,
+} from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import * as VideoThumbnails from "expo-video-thumbnails";
@@ -26,23 +32,18 @@ export default function CameraScreen() {
   console.log("CameraScreen loaded: 2025-12-19 v2");
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const [hasCameraPermissions, setHasCameraPermissions] = useState(false);
-  const [hasAudioPermissions, setHasAudioPermissions] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [microphonePermission, requestMicrophonePermission] =
+    useMicrophonePermissions();
+  const hasCameraPermissions = cameraPermission?.status === "granted";
+  const hasAudioPermissions = microphonePermission?.status === "granted";
   const [hasGalleryPermissions, setHasGalleryPermissions] = useState(false);
 
   const [galleryItems, setGalleryItems] = useState<MediaLibrary.Asset[]>([]);
 
-  const [cameraRef, setCameraRef] = useState<any>(null);
-  // Guard against CameraType being undefined in dev/Go by providing safe defaults
-  const cameraTypes = (Camera as any)?.Constants?.Type ?? {};
-  const defaultBack = cameraTypes.back ?? "back";
-  const defaultFront = cameraTypes.front ?? "front";
-  const [cameraType, setCameraType] = useState<any>(defaultBack);
-  // Use runtime-available FlashMode or safe string fallbacks
-  const flashModes = (Camera as any)?.Constants?.FlashMode ?? {};
-  const flashOff = flashModes.off ?? "off";
-  const flashTorch = flashModes.torch ?? "torch";
-  const [cameraFlash, setCameraFlash] = useState<any>(flashOff);
+  const cameraRef = useRef<CameraViewRef | null>(null);
+  const [cameraType, setCameraType] = useState<CameraType>("back");
+  const [torchEnabled, setTorchEnabled] = useState(false);
 
   const [isCameraReady, setIsCameraReady] = useState(false);
   const isFocused = useIsFocused();
@@ -123,11 +124,8 @@ export default function CameraScreen() {
   );
   useEffect(() => {
     (async () => {
-      const cameraStatus = await Camera.requestCameraPermissionsAsync();
-      setHasCameraPermissions(cameraStatus.status == "granted");
-
-      const audioStatus = await Camera.requestMicrophonePermissionsAsync();
-      setHasAudioPermissions(audioStatus.status == "granted");
+      await requestCameraPermission();
+      await requestMicrophonePermission();
 
       const galleryStatus =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -141,24 +139,18 @@ export default function CameraScreen() {
         setGalleryItems(userGalleryMedia.assets);
       }
     })();
-  }, []);
+  }, [requestCameraPermission, requestMicrophonePermission]);
 
   const recordVideo = async () => {
-    if (cameraRef) {
+    if (cameraRef.current) {
       try {
-        const options = {
+        const data = await cameraRef.current.record({
           maxDuration: 60,
-          // Guard in case Camera.Constants is undefined in Expo Go
-          quality: (Camera as any)?.Constants?.VideoQuality?.["480"] ?? ("480p" as any),
-        };
-        const videoRecordPromise = cameraRef.recordAsync(options);
-        if (videoRecordPromise) {
-          const data = await videoRecordPromise;
-          const source = data.uri;
-          let sourceThumb = await generateThumbnail(source);
-          if (sourceThumb) {
-            navigation.navigate("savePost", { source, sourceThumb });
-          }
+        });
+        const source = data.uri;
+        const sourceThumb = await generateThumbnail(source);
+        if (sourceThumb) {
+          navigation.navigate("savePost", { source, sourceThumb });
         }
       } catch (error) {
         console.warn(error);
@@ -167,8 +159,8 @@ export default function CameraScreen() {
   };
 
   const stopVideo = async () => {
-    if (cameraRef) {
-      cameraRef.stopRecording();
+    if (cameraRef.current) {
+      cameraRef.current.stopRecording();
     }
   };
 
@@ -217,16 +209,21 @@ export default function CameraScreen() {
           <Button
             title="Recheck permissions"
             onPress={() => {
-              requestCameraPermissionsAsync().then((cameraStatus) =>
-                setHasCameraPermissions(cameraStatus.status == "granted"),
-              );
-              requestMicrophonePermissionsAsync().then((audioStatus) =>
-                setHasAudioPermissions(audioStatus.status == "granted"),
-              );
               ImagePicker.requestMediaLibraryPermissionsAsync().then(
-                (galleryStatus) =>
-                  setHasGalleryPermissions(galleryStatus.status == "granted"),
+                async (galleryStatus) => {
+                  setHasGalleryPermissions(galleryStatus.status == "granted");
+                  if (galleryStatus.status == "granted") {
+                    const userGalleryMedia =
+                      await MediaLibrary.getAssetsAsync({
+                        sortBy: ["creationTime"],
+                        mediaType: ["video"],
+                      });
+                    setGalleryItems(userGalleryMedia.assets);
+                  }
+                },
               );
+              requestCameraPermission();
+              requestMicrophonePermission();
             }}
           />
         </View>
@@ -238,12 +235,13 @@ export default function CameraScreen() {
     <Screen fullBleed padding={false}>
       <View style={styles.container}>
         {isFocused ? (
-          <Camera
-            ref={(ref) => setCameraRef(ref)}
+          <CameraView
+            ref={cameraRef}
             style={styles.camera}
-            ratio={"16:9"}
-            type={cameraType}
-            flashMode={cameraFlash}
+            ratio="16:9"
+            mode="video"
+            facing={cameraType}
+            enableTorch={torchEnabled}
             onCameraReady={() => setIsCameraReady(true)}
           />
         ) : null}
@@ -255,9 +253,7 @@ export default function CameraScreen() {
               { opacity: pressed ? 0.85 : 1 },
             ]}
             onPress={() =>
-              setCameraType(
-                cameraType === defaultBack ? defaultFront : defaultBack,
-              )
+              setCameraType((prev) => (prev === "back" ? "front" : "back"))
             }
           >
             <Feather name="refresh-ccw" size={22} color={theme.colors.text} />
@@ -271,11 +267,7 @@ export default function CameraScreen() {
               styles.sideBarButton,
               { opacity: pressed ? 0.85 : 1 },
             ]}
-            onPress={() =>
-              setCameraFlash(
-                cameraFlash === flashOff ? flashTorch : flashOff,
-              )
-            }
+            onPress={() => setTorchEnabled((prev) => !prev)}
           >
             <Feather name="zap" size={22} color={theme.colors.text} />
             <AppText variant="caption" style={styles.iconText}>
