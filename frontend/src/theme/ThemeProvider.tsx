@@ -1,14 +1,14 @@
-import { createContext, ReactNode, useMemo } from "react";
+import { createContext, ReactNode } from "react";
 import { tokens, Theme } from "./tokens";
 
 export const ThemeContext = createContext<Theme>(tokens);
 
-export default function ThemeProvider({
+export function ThemeProvider({
   children,
 }: {
   children: ReactNode;
 }) {
-  const theme = useMemo(() => tokens, []);
-
-  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={tokens}>{children}</ThemeContext.Provider>;
 }
+
+export default ThemeProvider;

@@ -1,5 +1,5 @@
 import { ReactNode, useMemo } from "react";
-import { Platform, StyleProp, StyleSheet, Text, TextProps, TextStyle } from "react-native";
+import { StyleProp, StyleSheet, Text, TextProps, TextStyle } from "react-native";
 import { useTheme } from "../../theme/useTheme";
 
 type AppTextVariant = "title" | "subtitle" | "body" | "caption" | "muted";
@@ -9,22 +9,6 @@ interface AppTextProps extends TextProps {
   style?: StyleProp<TextStyle>;
   children: ReactNode;
 }
-
-const getFontFamily = (variant: AppTextVariant) => {
-  if (variant === "title" || variant === "subtitle") {
-    return Platform.select({
-      ios: "AvenirNext-DemiBold",
-      android: "sans-serif-condensed",
-      default: "System",
-    });
-  }
-
-  return Platform.select({
-    ios: "AvenirNext-Regular",
-    android: "sans-serif",
-    default: "System",
-  });
-};
 
 export default function AppText({
   variant = "body",
@@ -39,7 +23,6 @@ export default function AppText({
       StyleSheet.create({
         base: {
           color: theme.colors.text,
-          fontFamily: getFontFamily(variant),
         },
         title: {
           fontSize: theme.type.fontSizes.title,

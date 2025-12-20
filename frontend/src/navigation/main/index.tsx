@@ -1,7 +1,10 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useSelector } from "react-redux";
 import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import {
+  createNativeStackNavigator,
+  NativeStackNavigationOptions,
+} from "@react-navigation/native-stack";
 import AuthScreen from "../../screens/auth";
 import Landing from "../../screens/auth/Landing";
 import { RootState } from "../../redux/store";
@@ -15,7 +18,7 @@ import FeedScreen from "../../features/feed/FeedScreen";
 import ProfileScreen from "../../screens/profile";
 import ChatSingleScreen from "../../screens/chat/single";
 import useAuth from "../../hooks/useAuth";
-import { useTheme } from "../../theme/useTheme";
+import { tokens } from "../../theme/tokens";
 
 export type RootStackParamList = {
   landing: undefined;
@@ -30,95 +33,106 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const navTheme = {
+  dark: true,
+  colors: {
+    primary: tokens.colors.accent,
+    background: tokens.colors.bg,
+    card: tokens.colors.surface,
+    text: tokens.colors.text,
+    border: tokens.colors.borderSubtle,
+    notification: tokens.colors.accent,
+  },
+};
+const screenOptions: NativeStackNavigationOptions = {
+  headerStyle: { backgroundColor: tokens.colors.bg },
+  headerTintColor: tokens.colors.text,
+  contentStyle: { backgroundColor: tokens.colors.bg },
+};
+
+function UnauthedStack({
+  screenOptions,
+}: {
+  screenOptions: NativeStackNavigationOptions;
+}) {
+  return (
+    <Stack.Navigator initialRouteName="landing" screenOptions={screenOptions}>
+      <Stack.Screen
+        name="landing"
+        component={Landing}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="auth"
+        component={AuthScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function AuthedStack({
+  screenOptions,
+}: {
+  screenOptions: NativeStackNavigationOptions;
+}) {
+  return (
+    <Stack.Navigator initialRouteName="home" screenOptions={screenOptions}>
+      <Stack.Screen
+        name="home"
+        component={HomeScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="savePost"
+        component={SavePostScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="userPosts"
+        component={FeedScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="profileOther"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="editProfile"
+        component={EditProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="editProfileField"
+        component={EditProfileFieldScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="chatSingle"
+        component={ChatSingleScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+}
 
 export default function Route() {
   const { loading } = useAuth();
-  const theme = useTheme();
   const currentUserObj = useSelector((state: RootState) => state.auth);
-  const initialRouteName = currentUserObj.currentUser ? "home" : "landing";
+  const isAuthed = !!currentUserObj.currentUser;
 
   if (loading || !currentUserObj.loaded) {
     return <View></View>;
   }
 
-  const navTheme = useMemo(
-    () => ({
-      dark: true,
-      colors: {
-        primary: theme.colors.accent,
-        background: theme.colors.bg,
-        card: theme.colors.surface,
-        text: theme.colors.text,
-        border: theme.colors.borderSubtle,
-        notification: theme.colors.accent,
-      },
-    }),
-    [theme],
-  );
-
   return (
     <NavigationContainer theme={navTheme}>
-      <Stack.Navigator
-        initialRouteName={initialRouteName}
-        screenOptions={{
-          headerStyle: { backgroundColor: theme.colors.bg },
-          headerTintColor: theme.colors.text,
-          contentStyle: { backgroundColor: theme.colors.bg },
-        }}
-      >
-        {currentUserObj.currentUser == null ? (
-          <>
-            <Stack.Screen
-              name="landing"
-              component={Landing}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="auth"
-              component={AuthScreen}
-              options={{ headerShown: false }}
-            />
-          </>
-        ) : (
-          <>
-            <Stack.Screen
-              name="home"
-              component={HomeScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="savePost"
-              component={SavePostScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="userPosts"
-              component={FeedScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="profileOther"
-              component={ProfileScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="editProfile"
-              component={EditProfileScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="editProfileField"
-              component={EditProfileFieldScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="chatSingle"
-              component={ChatSingleScreen}
-              options={{ headerShown: false }}
-            />
-          </>
-        )}
-      </Stack.Navigator>
+      {isAuthed ? (
+        <AuthedStack screenOptions={screenOptions} />
+      ) : (
+        <UnauthedStack screenOptions={screenOptions} />
+      )}
       <Modal />
     </NavigationContainer>
   );

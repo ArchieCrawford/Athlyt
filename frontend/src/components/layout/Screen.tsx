@@ -30,7 +30,7 @@ export default function Screen({
 
   return (
     <SafeAreaView
-      edges={fullBleed ? [] : ["top", "bottom"]}
+      edges={fullBleed ? ["bottom"] : ["top", "bottom"]}
       style={[{ flex: 1, backgroundColor: theme.colors.bg }, style]}
     >
       {scroll ? (

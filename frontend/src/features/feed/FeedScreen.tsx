@@ -14,7 +14,6 @@ import { FeedStackParamList } from "../../navigation/feed/types";
 import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/context";
 import { getFeed, getPostsByUserId } from "../../services/posts";
 import { Post } from "../../../types";
-import useMaterialNavBarHeight from "../../hooks/useMaterialNavBarHeight";
 import { useTheme } from "../../theme/useTheme";
 import AppText from "../../components/ui/AppText";
 import Screen from "../../components/layout/Screen";
@@ -95,8 +94,7 @@ export default function FeedScreen({
     },
   );
 
-  const feedItemHeight =
-    height - useMaterialNavBarHeight(profile);
+  const feedItemHeight = height;
 
   return (
     <Screen fullBleed padding={false} style={{ backgroundColor: theme.colors.bg }}>

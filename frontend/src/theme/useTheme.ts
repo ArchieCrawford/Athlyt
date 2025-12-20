@@ -1,6 +1,8 @@
 import { useContext } from "react";
 import { ThemeContext } from "./ThemeProvider";
+import { tokens } from "./tokens";
 
 export const useTheme = () => {
-  return useContext(ThemeContext);
+  const theme = useContext(ThemeContext);
+  return theme ?? tokens;
 };

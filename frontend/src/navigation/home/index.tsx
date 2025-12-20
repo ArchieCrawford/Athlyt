@@ -35,11 +35,16 @@ export default function HomeScreen() {
       inactiveColor={theme.colors.textMuted}
       barStyle={{
         backgroundColor: theme.colors.surface,
-        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopWidth: 1,
         borderTopColor: theme.colors.borderSubtle,
         height: theme.tabBar.height,
         paddingBottom: theme.tabBar.paddingBottom,
         paddingTop: theme.tabBar.paddingTop,
+        elevation: 0,
+        shadowColor: "transparent",
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        shadowOffset: { width: 0, height: 0 },
       }}
       initialRouteName="feed"
     >

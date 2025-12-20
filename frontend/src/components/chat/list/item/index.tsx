@@ -1,18 +1,20 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
-import React from "react";
+import { View, Pressable, StyleSheet } from "react-native";
+import React, { useMemo } from "react";
 import { useUser } from "../../../../hooks/useUser";
-import styles from "./styles";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../../../navigation/main";
 import { Chat } from "../../../../../types";
-import { Avatar } from "react-native-paper";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../../redux/store";
+import { useTheme } from "../../../../theme/useTheme";
+import AppText from "../../../ui/AppText";
+import Avatar from "../../../ui/Avatar";
 
 const ChatListItem = ({ chat }: { chat: Chat }) => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const theme = useTheme();
   const currentUserId = useSelector(
     (state: RootState) => state.auth.currentUser?.uid,
   );
@@ -28,28 +30,59 @@ const ChatListItem = ({ chat }: { chat: Chat }) => {
     ? new Date(chat.lastUpdate as any).toLocaleDateString()
     : "Now";
 
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.spacing.md,
+          paddingVertical: theme.spacing.md,
+          paddingHorizontal: theme.spacing.md,
+          borderRadius: theme.radius.md,
+          backgroundColor: theme.colors.surface2,
+          borderWidth: 1,
+          borderColor: theme.colors.borderSubtle,
+          marginBottom: theme.spacing.sm,
+        },
+        message: {
+          color: theme.colors.textMuted,
+        },
+        timestamp: {
+          color: theme.colors.textMuted,
+          fontSize: theme.type.fontSizes.caption,
+        },
+      }),
+    [theme],
+  );
+
   return (
-    <TouchableOpacity
-      style={styles.container}
+    <Pressable
+      style={({ pressed }) => [
+        styles.container,
+        { opacity: pressed ? 0.85 : 1 },
+      ]}
       onPress={() => navigation.navigate("chatSingle", { chatId: chat.id })}
     >
-      {userData && userData.photoURL ? (
-        <Image style={styles.image} source={{ uri: userData.photoURL }} />
-      ) : (
-        <Avatar.Icon size={60} icon={"account"} />
-      )}
-      <View style={{ flex: 1 }}>
-        {userData && (
-          <Text style={styles.userDisplayName}>
+      <Avatar
+        size={56}
+        uri={userData?.photoURL}
+        label={userData?.displayName || userData?.email}
+      />
+      <View style={{ flex: 1, gap: theme.spacing.xs }}>
+        {userData ? (
+          <AppText variant="body">
             {userData.displayName || userData.email}
-          </Text>
-        )}
-        <Text style={styles.lastMessage}>{chat.lastMessage}</Text>
+          </AppText>
+        ) : null}
+        <AppText variant="caption" style={styles.message} numberOfLines={1}>
+          {chat.lastMessage}
+        </AppText>
       </View>
-      <Text>
+      <AppText variant="caption" style={styles.timestamp}>
         {lastUpdateLabel}
-      </Text>
-    </TouchableOpacity>
+      </AppText>
+    </Pressable>
   );
 };
 
