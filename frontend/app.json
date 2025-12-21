@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Tayp",
-    "slug": "tayp",
+    "name": "Athlyt",
+    "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "tayp",
+    "scheme": "athlyt",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "description": "Study the Tayp",
+    "userInterfaceStyle": "dark",
+    "description": "Athlyt mobile app",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -18,7 +18,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.archie.crawford1.tayp",
+      "bundleIdentifier": "com.archie.crawford1.frontend",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.archie.crawford1.tayp"
+      "package": "com.archie.crawford1.frontend"
     },
     "web": {
       "favicon": "./assets/favicon.png"
