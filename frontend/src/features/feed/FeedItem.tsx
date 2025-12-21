@@ -97,9 +97,9 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
     const username = user?.displayName || user?.email || item.creator;
     const avatarUri = user?.photoURL;
 
-    const safeVideoSource = hasPlayableVideo
-      ? (videoUri as VideoSource)
-      : FALLBACK_VIDEO_SOURCE;
+    const safeVideoSource = {
+      uri: hasPlayableVideo ? videoUri : FALLBACK_VIDEO_SOURCE,
+    } as VideoSource;
 
     const player = useVideoPlayer(
       safeVideoSource,

@@ -128,9 +128,10 @@ export default function CameraScreen() {
       await requestCameraPermission();
       await requestMicrophonePermission();
 
-      const galleryStatus =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const galleryStatus = await MediaLibrary.requestPermissionsAsync();
       setHasGalleryPermissions(galleryStatus.status == "granted");
+
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (galleryStatus.status == "granted") {
         const userGalleryMedia = await MediaLibrary.getAssetsAsync({
@@ -216,7 +217,7 @@ export default function CameraScreen() {
           <Button
             title="Recheck permissions"
             onPress={() => {
-              ImagePicker.requestMediaLibraryPermissionsAsync().then(
+              MediaLibrary.requestPermissionsAsync().then(
                 async (galleryStatus) => {
                   setHasGalleryPermissions(galleryStatus.status == "granted");
                   if (galleryStatus.status == "granted") {
@@ -229,6 +230,7 @@ export default function CameraScreen() {
                   }
                 },
               );
+              ImagePicker.requestMediaLibraryPermissionsAsync();
               requestCameraPermission();
               requestMicrophonePermission();
             }}
