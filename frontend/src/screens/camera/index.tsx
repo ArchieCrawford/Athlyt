@@ -40,7 +40,7 @@ export default function CameraScreen() {
 
   const [galleryItems, setGalleryItems] = useState<MediaLibrary.Asset[]>([]);
 
-  const cameraRef = useRef<React.ElementRef<typeof CameraView> | null>(null);
+  const cameraRef = useRef<React.ElementRef<typeof CameraView>>(null);
   const isRecordingRef = useRef(false);
   const [cameraType, setCameraType] = useState<CameraType>("back");
   const [torchEnabled, setTorchEnabled] = useState(false);

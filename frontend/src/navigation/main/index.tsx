@@ -9,7 +9,7 @@ import AuthScreen from "../../screens/auth";
 import Landing from "../../screens/auth/Landing";
 import { RootState } from "../../redux/store";
 import HomeScreen from "../home";
-import { View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import SavePostScreen from "../../screens/savePost";
 import EditProfileScreen from "../../screens/profile/edit";
 import EditProfileFieldScreen from "../../screens/profile/edit/field";
@@ -54,6 +54,19 @@ const screenOptions: NativeStackNavigationOptions = {
   headerTintColor: tokens.colors.text,
   contentStyle: { backgroundColor: tokens.colors.bg },
 };
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: tokens.colors.bg,
+    padding: tokens.spacing.lg,
+  },
+  loadingText: {
+    marginTop: tokens.spacing.md,
+    color: tokens.colors.textMuted,
+  },
+});
 
 function UnauthedStack({
   screenOptions,
@@ -122,13 +135,28 @@ function AuthedStack({
   );
 }
 
+function LoadingScreen() {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator color={tokens.colors.accent} />
+      <Text style={styles.loadingText}>Loading...</Text>
+    </View>
+  );
+}
+
 export default function Route() {
   const { loading } = useAuth();
   const currentUserObj = useSelector((state: RootState) => state.auth);
   const isAuthed = !!currentUserObj.currentUser;
 
+  console.log("AUTH STATE", {
+    user: currentUserObj.currentUser,
+    loading,
+    loaded: currentUserObj.loaded,
+  });
+
   if (loading || !currentUserObj.loaded) {
-    return <View></View>;
+    return <LoadingScreen />;
   }
 
   return (
