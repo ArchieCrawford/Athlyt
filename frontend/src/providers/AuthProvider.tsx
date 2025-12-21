@@ -140,6 +140,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         dispatch(getPostsByUser(nextSession.user.id));
       } catch (error) {
         console.error("Failed to hydrate auth session", error);
+        clearProfileChannel();
+        applyProfile(null);
       } finally {
         setLoading(false);
       }
@@ -159,6 +161,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       })
       .catch((error) => {
         console.error("Failed to get Supabase session", error);
+        applyProfile(null);
         setLoading(false);
       });
 

@@ -21,7 +21,10 @@
     "backend/**",
     "../backend/**",
     "../backend/Supabase/**",
+    "../supabase/**",
+    "supabase/**",
     "**/supabase/**",
+    "**/functions/**",
     "change-log/**"
   ]
 }

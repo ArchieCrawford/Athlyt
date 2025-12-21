@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction } from "react";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../../supabaseClient";
-import { Post, Comment } from "../../types";
+import { Post, Comment } from "../types";
 
 let commentChannel: RealtimeChannel | null = null;
 
