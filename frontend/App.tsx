@@ -7,7 +7,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import AuthProvider from "./src/providers/AuthProvider";
 import ThemeProvider from "./src/theme/ThemeProvider";
 import { StatusBar } from "expo-status-bar";
-import { useTheme } from "./src/theme/useTheme";
 import { MD3DarkTheme, Provider as PaperProvider } from "react-native-paper";
 import { tokens } from "./src/theme/tokens";
 
@@ -40,11 +39,9 @@ const paperTheme = {
 };
 
 function ThemedRoute() {
-  const theme = useTheme();
-
   return (
     <>
-      <StatusBar style="light" backgroundColor={theme.colors.bg} />
+      <StatusBar style="light" backgroundColor="#000000" />
       <Route />
     </>
   );

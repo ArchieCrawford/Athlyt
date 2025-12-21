@@ -10,7 +10,7 @@ export default function Landing({ navigation }: any) {
   return (
     <Screen>
       <View style={{ flex: 1, justifyContent: "center", gap: theme.spacing.lg }}>
-        <AppText variant="title">Athlyt</AppText>
+        <AppText variant="title">Tayp</AppText>
         <AppText variant="muted">
           Build your athlete profile. Get discovered. Message coaches.
         </AppText>

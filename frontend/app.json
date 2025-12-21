@@ -1,23 +1,24 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Tayp",
+    "slug": "tayp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "athlyt",
+    "scheme": "tayp",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "description": "Study the Tayp",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.archie.crawford1.frontend",
+      "bundleIdentifier": "com.archie.crawford1.tayp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -25,9 +26,9 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#000000"
       },
-      "package": "com.archie.crawford1.frontend"
+      "package": "com.archie.crawford1.tayp"
     },
     "web": {
       "favicon": "./assets/favicon.png"

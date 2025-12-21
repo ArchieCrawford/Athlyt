@@ -44,6 +44,7 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraViewRef | null>(null);
   const [cameraType, setCameraType] = useState<CameraType>("back");
   const [torchEnabled, setTorchEnabled] = useState(false);
+  const torchSupported = cameraType === "back";
 
   const [isCameraReady, setIsCameraReady] = useState(false);
   const isFocused = useIsFocused();
@@ -140,6 +141,12 @@ export default function CameraScreen() {
       }
     })();
   }, [requestCameraPermission, requestMicrophonePermission]);
+
+  useEffect(() => {
+    if (!torchSupported && torchEnabled) {
+      setTorchEnabled(false);
+    }
+  }, [torchEnabled, torchSupported]);
 
   const recordVideo = async () => {
     if (cameraRef.current) {
@@ -241,7 +248,7 @@ export default function CameraScreen() {
             ratio="16:9"
             mode="video"
             facing={cameraType}
-            enableTorch={torchEnabled}
+            enableTorch={torchSupported ? torchEnabled : false}
             onCameraReady={() => setIsCameraReady(true)}
           />
         ) : null}
@@ -265,9 +272,15 @@ export default function CameraScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.sideBarButton,
-              { opacity: pressed ? 0.85 : 1 },
+              { opacity: pressed ? 0.85 : torchSupported ? 1 : 0.5 },
             ]}
-            onPress={() => setTorchEnabled((prev) => !prev)}
+            onPress={() => {
+              if (!torchSupported) {
+                return;
+              }
+              setTorchEnabled((prev) => !prev);
+            }}
+            disabled={!torchSupported}
           >
             <Feather name="zap" size={22} color={theme.colors.text} />
             <AppText variant="caption" style={styles.iconText}>

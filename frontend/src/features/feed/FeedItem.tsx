@@ -19,9 +19,9 @@ import ActionRail from "./components/ActionRail";
 import CaptionBlock from "./components/CaptionBlock";
 
 export interface FeedItemHandles {
-  play: () => Promise<void>;
-  stop: () => Promise<void>;
-  unload: () => Promise<void>;
+  play: () => void;
+  stop: () => void;
+  unload: () => void;
 }
 
 interface FeedItemProps {
@@ -29,6 +29,9 @@ interface FeedItemProps {
   height: number;
   width: number;
 }
+
+const FALLBACK_VIDEO_SOURCE =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
 const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
   ({ item, height, width }, parentRef) => {
@@ -89,15 +92,24 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
     const caption = description.replace(/#[\\w-]+/g, "").trim();
     const posterUri = item.media?.[1] || item.media?.[0];
     const videoUri = item.media?.[0];
+    const hasPlayableVideo =
+      typeof videoUri === "string" && videoUri.trim().length > 0;
     const username = user?.displayName || user?.email || item.creator;
     const avatarUri = user?.photoURL;
 
-    const player = useVideoPlayer(videoUri as VideoSource, (playerInstance) => {
-      playerInstance.loop = true;
-    });
+    const safeVideoSource = hasPlayableVideo
+      ? (videoUri as VideoSource)
+      : FALLBACK_VIDEO_SOURCE;
 
-    const play = async () => {
-      if (!videoUri) {
+    const player = useVideoPlayer(
+      safeVideoSource,
+      (playerInstance) => {
+        playerInstance.loop = true;
+      },
+    );
+
+    const play = () => {
+      if (!hasPlayableVideo) {
         return;
       }
       try {
@@ -110,8 +122,8 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
       }
     };
 
-    const stop = async () => {
-      if (!videoUri) {
+    const stop = () => {
+      if (!hasPlayableVideo) {
         return;
       }
       try {
@@ -124,8 +136,8 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
       }
     };
 
-    const unload = async () => {
-      if (!videoUri) {
+    const unload = () => {
+      if (!hasPlayableVideo) {
         return;
       }
       try {
@@ -144,7 +156,7 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
 
     useEffect(() => {
       return () => {
-        unload().catch(() => {});
+        unload();
       };
     }, []);
 
@@ -209,7 +221,7 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
             resizeMode="cover"
             style={styles.media}
           >
-            {videoUri ? (
+            {hasPlayableVideo ? (
               <VideoView
                 style={styles.video}
                 contentFit="cover"
