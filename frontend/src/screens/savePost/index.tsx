@@ -28,6 +28,8 @@ export default function SavePostScreen({ route }: SavePostScreenProps) {
   const [requestRunning, setRequestRunning] = useState(false);
   const navigation =
     useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+  const mediaType = route.params.mediaType ?? "video";
+  const previewSource = route.params.sourceThumb ?? route.params.source;
 
   const dispatch: AppDispatch = useDispatch();
   const handleSavePost = () => {
@@ -37,6 +39,7 @@ export default function SavePostScreen({ route }: SavePostScreenProps) {
         description,
         video: route.params.source,
         thumbnail: route.params.sourceThumb,
+        mediaType,
       }),
     )
       .then(() => navigation.navigate("feed"))
@@ -58,12 +61,11 @@ export default function SavePostScreen({ route }: SavePostScreenProps) {
           maxLength={150}
           multiline
           onChangeText={(text) => setDescription(text)}
-          placeholder="Describe your video"
+          placeholder={
+            mediaType === "image" ? "Describe your photo" : "Describe your video"
+          }
         />
-        <Image
-          style={styles.mediaPreview}
-          source={{ uri: route.params.source }}
-        />
+        <Image style={styles.mediaPreview} source={{ uri: previewSource }} />
       </View>
       <View style={styles.spacer} />
       <View style={styles.buttonsContainer}>

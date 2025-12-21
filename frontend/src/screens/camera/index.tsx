@@ -3,7 +3,6 @@ import { View, StyleSheet, Image, Pressable } from "react-native";
 import {
   CameraType,
   CameraView,
-  CameraViewRef,
   useCameraPermissions,
   useMicrophonePermissions,
 } from "expo-camera";
@@ -41,7 +40,8 @@ export default function CameraScreen() {
 
   const [galleryItems, setGalleryItems] = useState<MediaLibrary.Asset[]>([]);
 
-  const cameraRef = useRef<CameraViewRef | null>(null);
+  const cameraRef = useRef<React.ElementRef<typeof CameraView> | null>(null);
+  const isRecordingRef = useRef(false);
   const [cameraType, setCameraType] = useState<CameraType>("back");
   const [torchEnabled, setTorchEnabled] = useState(false);
   const torchSupported = cameraType === "back";
@@ -136,7 +136,7 @@ export default function CameraScreen() {
       if (galleryStatus.status == "granted") {
         const userGalleryMedia = await MediaLibrary.getAssetsAsync({
           sortBy: ["creationTime"],
-          mediaType: ["video"],
+          mediaType: [MediaLibrary.MediaType.video, MediaLibrary.MediaType.photo],
         });
         setGalleryItems(userGalleryMedia.assets);
       }
@@ -150,16 +150,18 @@ export default function CameraScreen() {
   }, [torchEnabled, torchSupported]);
 
   const recordVideo = async () => {
-    if (cameraRef.current) {
+    if (cameraRef.current && isCameraReady) {
       try {
-        const data = await cameraRef.current.record({
+        const data = await cameraRef.current.recordAsync({
           maxDuration: 60,
         });
         const source = data.uri;
         const sourceThumb = await generateThumbnail(source);
-        if (sourceThumb) {
-          navigation.navigate("savePost", { source, sourceThumb });
-        }
+        navigation.navigate("savePost", {
+          source,
+          sourceThumb,
+          mediaType: "video",
+        });
       } catch (error) {
         console.warn(error);
       }
@@ -172,22 +174,48 @@ export default function CameraScreen() {
     }
   };
 
+  const takePhoto = async () => {
+    if (!cameraRef.current || !isCameraReady) {
+      return;
+    }
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        skipProcessing: false,
+      });
+      if (photo?.uri) {
+        navigation.navigate("savePost", {
+          source: photo.uri,
+          sourceThumb: photo.uri,
+          mediaType: "image",
+        });
+      }
+    } catch (error) {
+      console.warn(error);
+    }
+  };
+
   const pickFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      // Prefer new MediaType API when available; fall back to MediaTypeOptions for older typings
-      mediaTypes: [
-        (ImagePicker as any)?.MediaType?.Video ?? ImagePicker.MediaTypeOptions.Videos,
-      ],
+      mediaTypes: ["images", "videos"] as ImagePicker.MediaType[],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 1,
     });
     if (!result.canceled) {
-      const sourceThumb = await generateThumbnail(result.assets[0].uri);
-      if (sourceThumb) {
+      const asset = result.assets[0];
+      if (asset.type === "video") {
+        const sourceThumb = await generateThumbnail(asset.uri);
         navigation.navigate("savePost", {
-          source: result.assets[0].uri,
+          source: asset.uri,
           sourceThumb,
+          mediaType: "video",
+        });
+      } else {
+        navigation.navigate("savePost", {
+          source: asset.uri,
+          sourceThumb: asset.uri,
+          mediaType: "image",
         });
       }
     }
@@ -224,7 +252,10 @@ export default function CameraScreen() {
                     const userGalleryMedia =
                       await MediaLibrary.getAssetsAsync({
                         sortBy: ["creationTime"],
-                        mediaType: ["video"],
+                        mediaType: [
+                          MediaLibrary.MediaType.video,
+                          MediaLibrary.MediaType.photo,
+                        ],
                       });
                     setGalleryItems(userGalleryMedia.assets);
                   }
@@ -310,8 +341,25 @@ export default function CameraScreen() {
           </View>
           <Pressable
             disabled={!isCameraReady}
-            onLongPress={recordVideo}
-            onPressOut={stopVideo}
+            onPress={() => {
+              if (isRecordingRef.current) {
+                return;
+              }
+              takePhoto();
+            }}
+            onLongPress={() => {
+              if (isRecordingRef.current) {
+                return;
+              }
+              isRecordingRef.current = true;
+              recordVideo();
+            }}
+            onPressOut={() => {
+              if (isRecordingRef.current) {
+                stopVideo();
+              }
+              isRecordingRef.current = false;
+            }}
             style={({ pressed }) => [
               styles.recordButton,
               { opacity: pressed ? 0.9 : 1 },

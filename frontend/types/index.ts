@@ -2,6 +2,9 @@ export interface Post {
   id: string;
   creator: string;
   media: string[];
+  media_type?: "video" | "image";
+  poster_url?: string | null;
+  mux_playback_id?: string | null;
   description: string;
   likesCount: number;
   commentsCount: number;

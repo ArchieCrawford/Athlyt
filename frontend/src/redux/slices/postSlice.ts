@@ -1,5 +1,6 @@
 import { PayloadAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import uuid from "uuid-random";
+import * as VideoThumbnails from "expo-video-thumbnails";
 import { supabase } from "../../../supabaseClient";
 import { saveMediaToStorage } from "../../services/utils";
 import { Post } from "../../../types";
@@ -23,10 +24,12 @@ export const createPost = createAsyncThunk(
       description,
       video,
       thumbnail,
+      mediaType = "video",
     }: {
       description: string;
       video: string;
-      thumbnail: string;
+      thumbnail?: string;
+      mediaType?: "video" | "image";
     },
     { rejectWithValue },
   ) => {
@@ -41,24 +44,54 @@ export const createPost = createAsyncThunk(
 
     try {
       const storagePostId = uuid();
-      const [videoDownloadUrl, thumbnailDownloadUrl] = await Promise.all([
-        saveMediaToStorage(
+      let media: string[] = [];
+      let posterUrl: string | null = null;
+
+      if (mediaType === "image") {
+        const imageDownloadUrl = await saveMediaToStorage(
+          video,
+          `post/${user.id}/${storagePostId}/image.jpg`,
+        );
+        posterUrl = imageDownloadUrl;
+        media = [imageDownloadUrl, imageDownloadUrl];
+      } else {
+        let thumbnailUri = thumbnail;
+        if (!thumbnailUri) {
+          try {
+            const { uri } = await VideoThumbnails.getThumbnailAsync(video, {
+              time: 1000,
+            });
+            thumbnailUri = uri;
+          } catch (error) {
+            console.warn("Thumbnail generation failed:", error);
+          }
+        }
+
+        const videoDownloadUrl = await saveMediaToStorage(
           video,
           `post/${user.id}/${storagePostId}/video.mp4`,
-        ),
-        saveMediaToStorage(
-          thumbnail,
-          `post/${user.id}/${storagePostId}/thumbnail.jpg`,
-        ),
-      ]);
+        );
+
+        if (thumbnailUri) {
+          posterUrl = await saveMediaToStorage(
+            thumbnailUri,
+            `postThumbs/${user.id}/${storagePostId}.jpg`,
+          );
+          media = [videoDownloadUrl, posterUrl];
+        } else {
+          media = [videoDownloadUrl];
+        }
+      }
 
       const { error: insertError } = await supabase.from("post").insert({
         creator: user.id,
-        media: [videoDownloadUrl, thumbnailDownloadUrl],
+        media,
         description,
         likesCount: 0,
         commentsCount: 0,
         created_at: new Date().toISOString(),
+        media_type: mediaType,
+        poster_url: posterUrl,
       });
 
       if (insertError) {

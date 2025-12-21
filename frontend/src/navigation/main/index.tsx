@@ -26,7 +26,11 @@ export type RootStackParamList = {
   auth: undefined;
   userPosts: { creator: string; profile: boolean };
   profileOther: { initialUserId: string };
-  savePost: { source: string; sourceThumb: string };
+  savePost: {
+    source: string;
+    sourceThumb?: string;
+    mediaType?: "video" | "image";
+  };
   editProfile: undefined;
   editProfileField: { title: string; field: string; value: string };
   chatSingle: { chatId?: string; contactId?: string };

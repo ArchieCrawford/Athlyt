@@ -5,6 +5,35 @@ import { Post, Comment } from "../../types";
 
 let commentChannel: RealtimeChannel | null = null;
 
+export const ensurePosterUrlForPost = async (post: Post): Promise<Post> => {
+  const media = Array.isArray(post.media) ? [...post.media] : [];
+  const firstMedia = media[0] ?? "";
+  const isVideo = Boolean(
+    post.media_type === "video" ||
+      post.mux_playback_id ||
+      /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(firstMedia),
+  );
+  let posterUrl = post.poster_url ?? media[1];
+
+  if (!posterUrl && post.media_type === "video" && post.mux_playback_id) {
+    posterUrl = `https://image.mux.com/${post.mux_playback_id}/thumbnail.jpg`;
+  }
+
+  if (!posterUrl && !isVideo) {
+    posterUrl = media[0];
+  }
+
+  if (posterUrl && !media[1]) {
+    media[1] = posterUrl;
+  }
+
+  if (posterUrl && post.poster_url !== posterUrl && post.id) {
+    supabase.from("post").update({ poster_url: posterUrl }).eq("id", post.id);
+  }
+
+  return { ...post, poster_url: posterUrl, media };
+};
+
 /**
  * Returns all the posts in the database.
  *
@@ -22,11 +51,15 @@ export const getFeed = async (): Promise<Post[]> => {
     throw error;
   }
 
-  const posts = (data || []).map((item) => ({
-    id: item.id,
-    ...item,
-    creation: item.creation ?? item.created_at,
-  })) as Post[];
+  const posts = await Promise.all(
+    (data || []).map(async (item) =>
+      ensurePosterUrlForPost({
+        id: item.id,
+        ...item,
+        creation: item.creation ?? item.created_at,
+      } as Post),
+    ),
+  );
 
   return posts;
 };
@@ -191,11 +224,15 @@ export const getPostsByUserId = (
         return;
       }
 
-      const posts = (data || []).map((item) => ({
-        id: item.id,
-        ...item,
-        creation: item.creation ?? item.created_at,
-      })) as Post[];
+      const posts = await Promise.all(
+        (data || []).map(async (item) =>
+          ensurePosterUrlForPost({
+            id: item.id,
+            ...item,
+            creation: item.creation ?? item.created_at,
+          } as Post),
+        ),
+      );
 
       resolve(posts);
     };

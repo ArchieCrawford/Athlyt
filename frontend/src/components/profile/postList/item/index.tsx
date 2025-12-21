@@ -10,6 +10,15 @@ export default function ProfilePostListItem({ item }: { item: Post | null }) {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const theme = useTheme();
 
+  const firstMedia = item?.media[0] ?? "";
+  const isVideo = Boolean(
+    item?.media_type === "video" ||
+      item?.mux_playback_id ||
+      /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(firstMedia),
+  );
+  const posterUri =
+    item?.poster_url ?? item?.media[1] ?? (!isVideo ? item?.media[0] : undefined);
+
   return (
     item && (
       <Pressable
@@ -34,7 +43,7 @@ export default function ProfilePostListItem({ item }: { item: Post | null }) {
             borderRadius: theme.radius.sm,
             backgroundColor: theme.colors.surface2,
           }}
-          source={{ uri: item.media[1] }}
+          source={{ uri: posterUri }}
         />
       </Pressable>
     )
