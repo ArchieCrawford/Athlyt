@@ -40,7 +40,8 @@
     },
     "owner": "archie.crawford",
     "plugins": [
-      "expo-video"
+      "expo-video",
+      "expo-font"
     ]
   }
 }

@@ -10,6 +10,7 @@
     "format": "prettier \"**/*.{ts,tsx}\" --write"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5.2.8",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/material-bottom-tabs": "^6.2.16",
@@ -23,6 +24,7 @@
     "expo-av": "~16.0.8",
     "expo-camera": "~17.0.10",
     "expo-dev-client": "~6.0.20",
+    "expo-font": "~14.0.10",
     "expo-haptics": "~15.0.8",
     "expo-image-picker": "~17.0.10",
     "expo-linear-gradient": "~15.0.8",
@@ -30,7 +32,6 @@
     "expo-status-bar": "~3.0.9",
     "expo-video": "~3.0.15",
     "expo-video-thumbnails": "~10.0.8",
-    "@expo/vector-icons": "^15.0.3",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
