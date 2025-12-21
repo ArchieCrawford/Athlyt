@@ -109,7 +109,11 @@ function AuthedStack({
       <Stack.Screen
         name="userPosts"
         component={FeedScreen}
-        options={{ headerShown: false }}
+        options={({ navigation }) => ({
+          headerShown: true,
+          title: "Posts",
+          headerBackTitleVisible: false,
+        })}
       />
       <Stack.Screen
         name="profileOther"

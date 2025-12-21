@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Image, Pressable } from "react-native";
+import { Alert, View, StyleSheet, Image, Pressable } from "react-native";
 import {
   CameraType,
   CameraView,
@@ -36,6 +36,7 @@ export default function CameraScreen() {
     useMicrophonePermissions();
   const hasCameraPermissions = cameraPermission?.status === "granted";
   const hasAudioPermissions = microphonePermission?.status === "granted";
+  const hasRequiredPermissions = hasCameraPermissions && hasAudioPermissions;
   const [hasGalleryPermissions, setHasGalleryPermissions] = useState(false);
 
   const [galleryItems, setGalleryItems] = useState<MediaLibrary.Asset[]>([]);
@@ -196,6 +197,18 @@ export default function CameraScreen() {
   };
 
   const pickFromGallery = async () => {
+    if (!hasGalleryPermissions) {
+      const galleryStatus = await MediaLibrary.requestPermissionsAsync();
+      const granted = galleryStatus.status === "granted";
+      setHasGalleryPermissions(granted);
+      if (!granted) {
+        Alert.alert(
+          "Gallery access required",
+          "Gallery access is limited in Expo Go. Use a development build for full access.",
+        );
+        return;
+      }
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: [
         ImagePicker.MediaType.Images,
@@ -235,7 +248,7 @@ export default function CameraScreen() {
     }
   };
 
-  if (!hasCameraPermissions || !hasAudioPermissions || !hasGalleryPermissions) {
+  if (!hasRequiredPermissions) {
     return (
       <Screen>
         <View style={{ flex: 1, justifyContent: "center", gap: theme.spacing.md }}>
@@ -244,6 +257,10 @@ export default function CameraScreen() {
             Camera: {String(hasCameraPermissions)}{" "}
             Audio: {String(hasAudioPermissions)}{" "}
             Gallery: {String(hasGalleryPermissions)}
+          </AppText>
+          <AppText variant="muted">
+            Gallery access can be limited in Expo Go. A development build is
+            required for full gallery support.
           </AppText>
           <Button
             title="Recheck permissions"
@@ -277,6 +294,27 @@ export default function CameraScreen() {
   return (
     <Screen fullBleed padding={false}>
       <View style={styles.container}>
+        {!hasGalleryPermissions ? (
+          <View
+            style={{
+              position: "absolute",
+              top: insets.top + theme.spacing.sm,
+              left: theme.spacing.md,
+              right: theme.spacing.md,
+              zIndex: 10,
+              padding: theme.spacing.sm,
+              borderRadius: theme.radius.md,
+              backgroundColor: theme.colors.surface2,
+              borderWidth: 1,
+              borderColor: theme.colors.borderSubtle,
+            }}
+          >
+            <AppText variant="caption">
+              Gallery access is limited in Expo Go. Use a development build for
+              full access.
+            </AppText>
+          </View>
+        ) : null}
         {isFocused ? (
           <CameraView
             ref={cameraRef}
