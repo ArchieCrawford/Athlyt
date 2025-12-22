@@ -13,6 +13,7 @@ import { useTheme } from "../../../theme/useTheme";
 import AppText from "../../ui/AppText";
 import Button from "../../ui/Button";
 import Avatar from "../../ui/Avatar";
+import useAuth from "../../../hooks/useAuth";
 
 /**
  * Renders the header of the user profile and
@@ -27,6 +28,7 @@ export default function ProfileHeader({ user }: { user: User }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const theme = useTheme();
+  const { signOut } = useAuth();
   const [followersCount, setFollowersCount] = useState(
     user?.followersCount || 0,
   );
@@ -137,12 +139,26 @@ export default function ProfileHeader({ user }: { user: User }) {
           </View>
         </View>
         {currentUserId === user.uid ? (
-          <Button
-            title="Edit Profile"
-            variant="secondary"
-            fullWidth={false}
-            onPress={() => navigation.navigate("editProfile")}
-          />
+          <View style={{ gap: theme.spacing.sm, width: "100%" }}>
+            <Button
+              title="Edit Profile"
+              variant="secondary"
+              fullWidth={false}
+              onPress={() => navigation.navigate("editProfile")}
+            />
+            <Button
+              title="Change Password"
+              variant="ghost"
+              fullWidth={false}
+              onPress={() => navigation.navigate("changePassword")}
+            />
+            <Button
+              title="Logout"
+              variant="ghost"
+              fullWidth={false}
+              onPress={() => signOut()}
+            />
+          </View>
         ) : (
           renderFollowButton()
         )}

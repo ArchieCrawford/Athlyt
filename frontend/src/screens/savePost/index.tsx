@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Alert,
   Text,
   TextInput,
   TouchableOpacity,
@@ -42,8 +43,13 @@ export default function SavePostScreen({ route }: SavePostScreenProps) {
         mediaType,
       }),
     )
+      .unwrap()
       .then(() => navigation.navigate("feed"))
-      .catch(() => setRequestRunning(false));
+      .catch((err) => {
+        const message = typeof err === "string" ? err : err?.message;
+        Alert.alert("Post failed", message || "Unable to create post");
+        setRequestRunning(false);
+      });
   };
 
   if (requestRunning) {

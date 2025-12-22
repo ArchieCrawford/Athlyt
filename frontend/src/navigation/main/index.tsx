@@ -13,6 +13,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import SavePostScreen from "../../screens/savePost";
 import EditProfileScreen from "../../screens/profile/edit";
 import EditProfileFieldScreen from "../../screens/profile/edit/field";
+import ChangePasswordScreen from "../../screens/auth/ChangePassword";
 import Modal from "../../components/modal";
 import FeedScreen from "../../features/feed/FeedScreen";
 import ProfileScreen from "../../screens/profile";
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   editProfile: undefined;
   editProfileField: { title: string; field: string; value: string };
   chatSingle: { chatId?: string; contactId?: string };
+  changePassword: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -134,6 +136,11 @@ function AuthedStack({
         name="chatSingle"
         component={ChatSingleScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="changePassword"
+        component={ChangePasswordScreen}
+        options={{ title: "Update Password" }}
       />
     </Stack.Navigator>
   );

@@ -99,7 +99,11 @@ export const createPost = createAsyncThunk(
       }
     } catch (error) {
       console.error("Error creating post: ", error);
-      return rejectWithValue(error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : (error as any)?.message ?? String(error);
+      return rejectWithValue(message);
     }
   },
 );
