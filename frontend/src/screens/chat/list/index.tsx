@@ -14,7 +14,6 @@ import { Chat } from "../../../../types";
 import Screen from "../../../components/layout/Screen";
 import AppText from "../../../components/ui/AppText";
 import { useTheme } from "../../../theme/useTheme";
-import Avatar from "../../../components/ui/Avatar";
 import { Feather } from "@expo/vector-icons";
 
 const ChatScreen = () => {
@@ -78,7 +77,24 @@ const ChatScreen = () => {
 
   const renderBubble = (label: string, icon?: keyof typeof Feather.glyphMap) => (
     <View style={styles.bubble} key={label}>
-      <Avatar size={52} label={label} icon={icon} />
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: theme.colors.surface2,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {icon ? (
+          <Feather name={icon} size={22} color={theme.colors.text} />
+        ) : (
+          <AppText variant="body">
+            {label.slice(0, 2).toUpperCase()}
+          </AppText>
+        )}
+      </View>
       <AppText variant="caption" style={{ textAlign: "center" }}>
         {label}
       </AppText>

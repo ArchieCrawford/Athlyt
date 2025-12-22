@@ -4,7 +4,7 @@ Youth Athlete Safety & Consent Policy
 
 Last Updated: December 21, 2025
 
-Athlyt is committed to protecting young athletes.
+Tayp is committed to protecting young athletes.
 
 Age Requirements
 
@@ -14,7 +14,7 @@ Users under 18 must have parental or guardian permission
 
 Consent Representation
 
-By using Athlyt, minors represent that parental consent has been obtained.
+By using Tayp, minors represent that parental consent has been obtained.
 
 Communication Safeguards
 

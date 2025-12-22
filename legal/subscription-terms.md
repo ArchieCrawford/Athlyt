@@ -1,6 +1,6 @@
 6) SUBSCRIPTION & PAYMENT TERMS
 
-Athlyt Pro Membership Terms
+Tayp Pro Membership Terms
 
 Last Updated: December 21, 2025
 

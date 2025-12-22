@@ -12,7 +12,7 @@ Access to messaging and advanced features requires verification.
 
 Permitted Use
 
-You may use Athlyt solely to evaluate athletic performance and communicate professionally.
+You may use Tayp solely to evaluate athletic performance and communicate professionally.
 
 Prohibited Conduct
 
@@ -30,4 +30,4 @@ Compliance
 
 You are responsible for complying with NCAA, institutional, and local regulations.
 
-Athlyt is not responsible for recruiting decisions or outcomes.
+Tayp is not responsible for recruiting decisions or outcomes.
