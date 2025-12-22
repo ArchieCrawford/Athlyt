@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { View, Pressable } from "react-native";
 import { RootState } from "../../../redux/store";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -13,7 +13,7 @@ import { useTheme } from "../../../theme/useTheme";
 import AppText from "../../ui/AppText";
 import Button from "../../ui/Button";
 import Avatar from "../../ui/Avatar";
-import useAuth from "../../../hooks/useAuth";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 /**
  * Renders the header of the user profile and
@@ -28,7 +28,6 @@ export default function ProfileHeader({ user }: { user: User }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const theme = useTheme();
-  const { signOut } = useAuth();
   const [followersCount, setFollowersCount] = useState(
     user?.followersCount || 0,
   );
@@ -105,6 +104,34 @@ export default function ProfileHeader({ user }: { user: User }) {
           gap: theme.spacing.md,
         }}
       >
+        <SafeAreaView style={{ width: "100%" }} edges={["top"]}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: theme.spacing.lg,
+              marginBottom: theme.spacing.md,
+            }}
+          >
+            <View style={{ flexDirection: "row", gap: theme.spacing.md }}>
+              <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                <Feather name="user-plus" size={20} color={theme.colors.text} />
+              </Pressable>
+              <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                <Feather name="music" size={20} color={theme.colors.text} />
+              </Pressable>
+            </View>
+            <View style={{ flexDirection: "row", gap: theme.spacing.md }}>
+              <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                <Feather name="share-2" size={20} color={theme.colors.text} />
+              </Pressable>
+              <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                <Feather name="menu" size={22} color={theme.colors.text} />
+              </Pressable>
+            </View>
+          </View>
+        </SafeAreaView>
         <Avatar
           size={88}
           uri={user.photoURL}
@@ -145,18 +172,6 @@ export default function ProfileHeader({ user }: { user: User }) {
               variant="secondary"
               fullWidth={false}
               onPress={() => navigation.navigate("editProfile")}
-            />
-            <Button
-              title="Change Password"
-              variant="ghost"
-              fullWidth={false}
-              onPress={() => navigation.navigate("changePassword")}
-            />
-            <Button
-              title="Logout"
-              variant="ghost"
-              fullWidth={false}
-              onPress={() => signOut()}
             />
           </View>
         ) : (

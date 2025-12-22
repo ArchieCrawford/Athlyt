@@ -11,13 +11,15 @@ import { Post } from "../../../types";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
+import { ProfileDrawerParamList } from "../../navigation/profile";
 import Screen from "../../components/layout/Screen";
 import { useTheme } from "../../theme/useTheme";
 
 type ProfileScreenRouteProp =
   | RouteProp<RootStackParamList, "profileOther">
   | RouteProp<HomeStackParamList, "Me">
-  | RouteProp<FeedStackParamList, "feedProfile">;
+  | RouteProp<FeedStackParamList, "feedProfile">
+  | RouteProp<ProfileDrawerParamList, "ProfileMain">;
 
 export default function ProfileScreen({
   route,

@@ -1,7 +1,7 @@
 import { createMaterialBottomTabNavigator } from "@react-navigation/material-bottom-tabs";
 import { Feather } from "@expo/vector-icons";
 import CameraScreen from "../../screens/camera";
-import ProfileScreen from "../../screens/profile";
+import ProfileNavigation from "../profile";
 import SearchScreen from "../../screens/search";
 import FeedNavigation from "../feed";
 import ChatScreen from "../../screens/chat/list";
@@ -86,7 +86,7 @@ export default function HomeScreen() {
       />
       <Tab.Screen
         name="Me"
-        component={ProfileScreen}
+        component={ProfileNavigation}
         options={{
           tabBarIcon: ({ color }) => (
             <Feather name="user" size={24} color={color} />
