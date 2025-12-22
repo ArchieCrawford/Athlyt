@@ -1,5 +1,5 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { VideoSource, VideoView } from "expo-video";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { useVideoPlayer, VideoSource, VideoView } from "expo-video";
 import styles from "./styles";
 import { Post } from "../../../../types";
 import { useUser } from "../../../hooks/useUser";
@@ -20,7 +20,14 @@ export interface PostSingleHandles {
  */
 export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
   ({ item }, parentRef) => {
-    const ref = useRef<VideoView>(null);
+    const hasVideo = Array.isArray(item.media) && item.media[0];
+    const poster = item.poster_url || item.media?.[1];
+    const source = (hasVideo
+      ? { uri: item.media[0] }
+      : { uri: "" }) as VideoSource;
+    const player = useVideoPlayer(source, (p) => {
+      p.loop = true;
+    });
     const user = useUser(item.creator).data;
 
     useImperativeHandle(parentRef, () => ({
@@ -46,15 +53,10 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
      * @returns {void}
      */
     const play = async () => {
-      if (ref.current == null) {
-        return;
-      }
+      if (!hasVideo) return;
       try {
-        const status = await ref.current.getStatusAsync();
-        if (status?.isPlaying) {
-          return;
-        }
-        await ref.current.play();
+        if (player.playing) return;
+        player.play();
       } catch (e) {
         console.log("An error occurred:", e);
       }
@@ -67,15 +69,10 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
      * @returns {void}
      */
     const stop = async () => {
-      if (ref.current == null) {
-        return;
-      }
+      if (!hasVideo) return;
       try {
-        const status = await ref.current.getStatusAsync();
-        if (status && !status.isPlaying) {
-          return;
-        }
-        await ref.current.pause();
+        if (!player.playing) return;
+        player.pause();
       } catch (e) {
         console.log("An error occurred:", e);
       }
@@ -91,11 +88,10 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
      * @returns {void}
      */
     const unload = async () => {
-      if (ref.current == null) {
-        return;
-      }
+      if (!hasVideo) return;
       try {
-        await ref.current.unload();
+        player.pause();
+        player.currentTime = 0;
       } catch (e) {
         console.log(e);
       }
@@ -105,13 +101,12 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
       <>
         {user && <PostSingleOverlay user={user} post={item} />}
         <VideoView
-          ref={ref}
           style={styles.container}
           contentFit="cover"
-          isLooping
-          poster={item.media[1]}
+          nativeControls={false}
+          poster={poster}
           posterResizeMode="cover"
-          source={item.media[0] as VideoSource}
+          player={player}
         />
       </>
     );
