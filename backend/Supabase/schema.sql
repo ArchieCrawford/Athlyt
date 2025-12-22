@@ -7,6 +7,7 @@ create table if not exists public."user" (
   email text not null,
   "displayName" text,
   "photoURL" text,
+  bio text,
   "followingCount" integer default 0,
   "followersCount" integer default 0,
   "likesCount" integer default 0,

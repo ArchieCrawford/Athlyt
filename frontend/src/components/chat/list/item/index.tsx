@@ -22,9 +22,7 @@ const ChatListItem = ({ chat }: { chat: Chat }) => {
     currentUserId && chat.members[0] === currentUserId
       ? chat.members[1]
       : chat.members[0];
-  const { data: userData } = useUser(
-    contactId,
-  );
+  const { data: userData } = useUser(contactId);
 
   const lastUpdateLabel = chat.lastUpdate
     ? new Date(chat.lastUpdate as any).toLocaleDateString()
@@ -67,12 +65,12 @@ const ChatListItem = ({ chat }: { chat: Chat }) => {
       <Avatar
         size={56}
         uri={userData?.photoURL}
-        label={userData?.displayName || userData?.email}
+        label={userData?.displayName || "@user"}
       />
       <View style={{ flex: 1, gap: theme.spacing.xs }}>
         {userData ? (
           <AppText variant="body">
-            {userData.displayName || userData.email}
+            {userData.displayName || "@user"}
           </AppText>
         ) : null}
         <AppText variant="caption" style={styles.message} numberOfLines={1}>

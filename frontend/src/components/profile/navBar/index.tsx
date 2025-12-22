@@ -35,13 +35,7 @@ export default function ProfileNavBar({
             <Feather name="music" size={18} color={theme.colors.text} />
           </Pressable>
         </View>
-        <AppText
-          variant="subtitle"
-          style={{ flex: 1, textAlign: "center" }}
-          numberOfLines={1}
-        >
-          {user.email}
-        </AppText>
+        <View style={{ flex: 1 }} />
         <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
           <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
             <Feather name="share-2" size={20} color={theme.colors.text} />
