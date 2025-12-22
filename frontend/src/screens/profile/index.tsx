@@ -1,4 +1,4 @@
-import { ScrollView, View } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import ProfileNavBar from "../../components/profile/navBar";
 import ProfileHeader from "../../components/profile/header";
 import ProfilePostList from "../../components/profile/postList";
@@ -15,6 +15,7 @@ import Screen from "../../components/layout/Screen";
 import { useTheme } from "../../theme/useTheme";
 import ProfileMenuSheet from "../../components/profile/ProfileMenuSheet";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { supabase } from "../../../supabaseClient";
 
 type ProfileScreenRouteProp =
   | RouteProp<RootStackParamList, "profileOther">
@@ -53,6 +54,13 @@ export default function ProfileScreen({
     return <></>;
   }
 
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert("Logout failed", error.message);
+    }
+  };
+
   return (
     <Screen padding={false}>
       <ProfileNavBar user={user} onMenuPress={() => setMenuOpen(true)} />
@@ -71,10 +79,11 @@ export default function ProfileScreen({
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
         items={[
-          { label: "Settings and privacy", icon: "settings", route: "SettingsAndPrivacy" },
+          { label: "Settings and privacy", icon: "settings", route: "settings" },
           { label: "Saved", icon: "bookmark", route: "Saved" },
           { label: "QR code", icon: "grid", route: "ProfileQr" },
           { label: "Activity center", icon: "activity", route: "ActivityCenter" },
+          { label: "Logout", icon: "log-out", onPress: handleLogout },
         ]}
         onSelect={(routeName) =>
           navigation.navigate(routeName as keyof RootStackParamList)

@@ -1,23 +1,19 @@
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import Constants from "expo-constants";
 import Screen from "../../../components/layout/Screen";
 import { useTheme } from "../../../theme/useTheme";
 import SettingsRow from "./SettingsRow";
-import { supabase } from "../../../../supabaseClient";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { SettingsStackParamList } from "../../../navigation/settings";
 
-export default function SettingsHomeScreen() {
+export default function SettingsLegalScreen() {
   const theme = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      Alert.alert("Logout failed", error.message);
-    }
-  };
+  const appVersion =
+    Constants.expoConfig?.version ?? Constants.manifest?.version ?? "1.0.0";
+  const effectiveDate = "December 21, 2025";
 
   const styles = StyleSheet.create({
     container: {
@@ -43,47 +39,42 @@ export default function SettingsHomeScreen() {
       borderColor: "#E5E5E5",
       backgroundColor: "#ffffff",
     },
+    footer: {
+      marginTop: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.lg,
+      gap: theme.spacing.xs,
+    },
+    footerText: {
+      color: "#6B6B6B",
+      fontSize: 12,
+    },
   });
 
   return (
     <Screen scroll padding={false} style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionTitle}>Account</Text>
+      <Text style={styles.sectionTitle}>Legal</Text>
       <View style={styles.sectionCard}>
         <SettingsRow
-          label="Account"
-          onPress={() => navigation.navigate("Account")}
+          label="Terms of Service"
+          onPress={() => navigation.navigate("LegalTerms")}
+        />
+        <SettingsRow
+          label="Privacy Policy"
+          onPress={() => navigation.navigate("LegalPrivacy")}
+        />
+        <SettingsRow
+          label="Community Guidelines"
+          onPress={() => navigation.navigate("LegalCommunity")}
+        />
+        <SettingsRow
+          label="Athlete Content License"
+          onPress={() => navigation.navigate("LegalLicense")}
         />
       </View>
 
-      <Text style={styles.sectionTitle}>Content & display</Text>
-      <View style={styles.sectionCard}>
-        <SettingsRow
-          label="Privacy"
-          onPress={() => navigation.navigate("Privacy")}
-        />
-        <SettingsRow
-          label="Security & permissions"
-          onPress={() => navigation.navigate("SecurityPermissions")}
-        />
-        <SettingsRow
-          label="Notifications"
-          onPress={() => navigation.navigate("Notifications")}
-        />
-      </View>
-
-      <Text style={styles.sectionTitle}>Support</Text>
-      <View style={styles.sectionCard}>
-        <SettingsRow label="Legal" onPress={() => navigation.navigate("Legal")} />
-      </View>
-
-      <Text style={styles.sectionTitle}>Logout</Text>
-      <View style={styles.sectionCard}>
-        <SettingsRow
-          label="Log out"
-          destructive
-          showChevron={false}
-          onPress={handleLogout}
-        />
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Effective date: {effectiveDate}</Text>
+        <Text style={styles.footerText}>App version: {appVersion}</Text>
       </View>
     </Screen>
   );

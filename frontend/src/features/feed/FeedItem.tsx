@@ -171,10 +171,18 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
     };
 
     const description = item.description || "";
-    const posterUri = item.media?.[1] || item.media?.[0];
-    const videoUri = item.media?.[0];
+    const rawMediaUri = item.media?.[0];
+    const inferredImage =
+      typeof rawMediaUri === "string" &&
+      /\.(png|jpe?g|webp|gif)$/i.test(rawMediaUri.split("?")[0]);
+    const isImage =
+      item.media_type === "image" || (!item.media_type && inferredImage);
+    const videoUri = isImage ? undefined : rawMediaUri;
+    const posterUri =
+      item.poster_url ||
+      (isImage ? item.media?.[0] : item.media?.[1] || item.media?.[0]);
     const hasPlayableVideo =
-      typeof videoUri === "string" && videoUri.trim().length > 0;
+      !isImage && typeof videoUri === "string" && videoUri.trim().length > 0;
     const username = user?.displayName || user?.email || item.creator;
     const avatarUri = user?.photoURL;
     const showFollow = currentUserId ? currentUserId !== item.creator : true;
@@ -310,104 +318,108 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
             resizeMode="cover"
             style={styles.media}
           >
-            <Pressable
-              onPress={onToggleMute}
-              style={StyleSheet.absoluteFillObject}
-            >
-              {hasPlayableVideo ? (
-                <VideoView
-                  style={styles.video}
-                  contentFit="cover"
-                  nativeControls={false}
-                  player={player}
-                />
-              ) : null}
-            </Pressable>
-            <LinearGradient
-              colors={theme.gradients.top}
-              style={styles.gradientTop}
-            />
-            <LinearGradient
-              colors={theme.gradients.bottom}
-              style={styles.gradientBottom}
-            />
-            <View style={styles.overlay}>
-              <View style={styles.caption}>
-                <CaptionBlock
-                  username={username}
-                  text={description}
-                  onHashtagPress={(tag) =>
-                    navigation.navigate("HashtagResults", { tag })
-                  }
-                  onMentionPress={handleMentionPress}
-                />
-                <View
-                  style={{
-                    marginTop: theme.spacing.sm,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: theme.spacing.sm,
-                  }}
+            {!isImage ? (
+              <>
+                <Pressable
+                  onPress={onToggleMute}
+                  style={StyleSheet.absoluteFillObject}
                 >
-                  <Feather
-                    name="music"
-                    size={14}
-                    color={theme.colors.textMuted}
-                  />
-                  <AppText
-                    variant="caption"
-                    style={{ color: theme.colors.textMuted }}
-                  >
-                    Original sound
-                  </AppText>
-                  {showShop ? (
+                  {hasPlayableVideo ? (
+                    <VideoView
+                      style={styles.video}
+                      contentFit="cover"
+                      nativeControls={false}
+                      player={player}
+                    />
+                  ) : null}
+                </Pressable>
+                <LinearGradient
+                  colors={theme.gradients.top}
+                  style={styles.gradientTop}
+                />
+                <LinearGradient
+                  colors={theme.gradients.bottom}
+                  style={styles.gradientBottom}
+                />
+                <View style={styles.overlay}>
+                  <View style={styles.caption}>
+                    <CaptionBlock
+                      username={username}
+                      text={description}
+                      onHashtagPress={(tag) =>
+                        navigation.navigate("HashtagResults", { tag })
+                      }
+                      onMentionPress={handleMentionPress}
+                    />
                     <View
                       style={{
-                        marginLeft: theme.spacing.sm,
-                        paddingHorizontal: theme.spacing.sm,
-                        paddingVertical: 2,
-                        borderRadius: theme.radius.sm,
-                        backgroundColor: theme.colors.surface2,
+                        marginTop: theme.spacing.sm,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: theme.spacing.sm,
                       }}
                     >
-                      <AppText variant="caption">Shop</AppText>
+                      <Feather
+                        name="music"
+                        size={14}
+                        color={theme.colors.textMuted}
+                      />
+                      <AppText
+                        variant="caption"
+                        style={{ color: theme.colors.textMuted }}
+                      >
+                        Original sound
+                      </AppText>
+                      {showShop ? (
+                        <View
+                          style={{
+                            marginLeft: theme.spacing.sm,
+                            paddingHorizontal: theme.spacing.sm,
+                            paddingVertical: 2,
+                            borderRadius: theme.radius.sm,
+                            backgroundColor: theme.colors.surface2,
+                          }}
+                        >
+                          <AppText variant="caption">Shop</AppText>
+                        </View>
+                      ) : null}
                     </View>
-                  ) : null}
+                  </View>
+                  <ActionRail
+                    style={styles.actionRail}
+                    avatarUri={avatarUri}
+                    showFollow={showFollow}
+                    liked={liked}
+                    likes={likesCount}
+                    comments={item.commentsCount}
+                    bookmarks={bookmarkCount}
+                    bookmarked={bookmarked}
+                    sharesLabel={sharesLabel}
+                    onLike={handleLike}
+                    onComment={handleComment}
+                    onShare={handleShare}
+                    onBookmark={handleBookmark}
+                    onAvatarPress={() =>
+                      navigation.navigate("profileOther", {
+                        initialUserId: item.creator,
+                      })
+                    }
+                  />
                 </View>
-              </View>
-              <ActionRail
-                style={styles.actionRail}
-                avatarUri={avatarUri}
-                showFollow={showFollow}
-                liked={liked}
-                likes={likesCount}
-                comments={item.commentsCount}
-                bookmarks={bookmarkCount}
-                bookmarked={bookmarked}
-                sharesLabel={sharesLabel}
-                onLike={handleLike}
-                onComment={handleComment}
-                onShare={handleShare}
-                onBookmark={handleBookmark}
-                onAvatarPress={() =>
-                  navigation.navigate("profileOther", {
-                    initialUserId: item.creator,
-                  })
-                }
-              />
-            </View>
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.heart,
-                {
-                  opacity: heartOpacity,
-                  transform: [{ scale: heartScale }],
-                },
-              ]}
-            >
-              <Feather name="heart" size={72} color={theme.colors.accent} />
-            </Animated.View>
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.heart,
+                    {
+                      opacity: heartOpacity,
+                      transform: [{ scale: heartScale }],
+                    },
+                  ]}
+                >
+                  <Feather name="heart" size={72} color={theme.colors.accent} />
+                </Animated.View>
+              </>
+            ) : null}
           </ImageBackground>
         ) : (
           <View style={styles.media} />

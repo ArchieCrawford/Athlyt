@@ -1,6 +1,10 @@
 import React from "react";
 import { useSelector } from "react-redux";
-import { DarkTheme, NavigationContainer } from "@react-navigation/native";
+import {
+  DarkTheme,
+  NavigationContainer,
+  NavigatorScreenParams,
+} from "@react-navigation/native";
 import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
@@ -19,21 +23,17 @@ import {
 import SavePostScreen from "../../screens/savePost";
 import EditProfileScreen from "../../screens/profile/edit";
 import EditProfileFieldScreen from "../../screens/profile/edit/field";
-import ChangePasswordScreen from "../../screens/auth/ChangePassword";
 import Modal from "../../components/modal";
 import FeedScreen from "../../features/feed/FeedScreen";
 import ProfileScreen from "../../screens/profile";
 import ChatSingleScreen from "../../screens/chat/single";
-import SettingsAndPrivacyScreen from "../../screens/profile/settings";
 import SavedScreen from "../../screens/profile/menu/SavedScreen";
 import ProfileQrScreen from "../../screens/profile/menu/ProfileQrScreen";
 import ActivityCenterScreen from "../../screens/profile/menu/ActivityCenterScreen";
-import TermsScreen from "../../screens/legal/TermsScreen";
-import PrivacyScreen from "../../screens/legal/PrivacyScreen";
-import CommunityGuidelinesScreen from "../../screens/legal/CommunityGuidelinesScreen";
 import HashtagResultsScreen from "../../screens/search/HashtagResults";
 import useAuth from "../../hooks/useAuth";
 import { tokens } from "../../theme/tokens";
+import SettingsStack, { SettingsStackParamList } from "../settings";
 
 export type RootStackParamList = {
   landing: undefined;
@@ -49,14 +49,10 @@ export type RootStackParamList = {
   editProfile: undefined;
   editProfileField: { title: string; field: string; value: string };
   chatSingle: { chatId?: string; contactId?: string };
-  changePassword: undefined;
-  SettingsAndPrivacy: undefined;
+  settings: NavigatorScreenParams<SettingsStackParamList>;
   Saved: undefined;
   ProfileQr: undefined;
   ActivityCenter: undefined;
-  LegalTerms: undefined;
-  LegalPrivacy: undefined;
-  LegalCommunity: undefined;
   HashtagResults: { tag: string };
 };
 
@@ -166,14 +162,9 @@ function AuthedStack({
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="changePassword"
-        component={ChangePasswordScreen}
-        options={{ title: "Update Password" }}
-      />
-      <Stack.Screen
-        name="SettingsAndPrivacy"
-        component={SettingsAndPrivacyScreen}
-        options={{ title: "Settings and privacy" }}
+        name="settings"
+        component={SettingsStack}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Saved"
@@ -189,21 +180,6 @@ function AuthedStack({
         name="ActivityCenter"
         component={ActivityCenterScreen}
         options={{ title: "Activity center" }}
-      />
-      <Stack.Screen
-        name="LegalTerms"
-        component={TermsScreen}
-        options={{ title: "Terms of Service" }}
-      />
-      <Stack.Screen
-        name="LegalPrivacy"
-        component={PrivacyScreen}
-        options={{ title: "Privacy Policy" }}
-      />
-      <Stack.Screen
-        name="LegalCommunity"
-        component={CommunityGuidelinesScreen}
-        options={{ title: "Community Guidelines" }}
       />
       <Stack.Screen
         name="HashtagResults"

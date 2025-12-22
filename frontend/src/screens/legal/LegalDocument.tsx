@@ -14,14 +14,19 @@ export default function LegalDocument({
   const styles = StyleSheet.create({
     body: {
       marginTop: theme.spacing.md,
-      color: theme.colors.textMuted,
       lineHeight: 20,
+      color: "#444444",
+    },
+    title: {
+      color: "#111111",
     },
   });
 
   return (
-    <Screen scroll>
-      <AppText variant="title">{title}</AppText>
+    <Screen scroll style={{ backgroundColor: "#ffffff" }}>
+      <AppText variant="title" style={styles.title}>
+        {title}
+      </AppText>
       <AppText variant="body" style={styles.body}>
         {content}
       </AppText>

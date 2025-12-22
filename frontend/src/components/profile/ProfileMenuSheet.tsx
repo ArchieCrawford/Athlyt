@@ -15,14 +15,15 @@ import AppText from "../ui/AppText";
 type MenuItem = {
   label: string;
   icon: keyof typeof Feather.glyphMap;
-  route: string;
+  route?: string;
+  onPress?: () => void;
 };
 
 interface ProfileMenuSheetProps {
   visible: boolean;
   items: MenuItem[];
   onClose: () => void;
-  onSelect: (route: string) => void;
+  onSelect?: (route: string) => void;
 }
 
 export default function ProfileMenuSheet({
@@ -136,13 +137,17 @@ export default function ProfileMenuSheet({
       >
         {items.map((item) => (
           <Pressable
-            key={item.route}
+            key={item.route ?? item.label}
             style={({ pressed }) => [
               styles.item,
               { opacity: pressed ? 0.7 : 1 },
             ]}
             onPress={() => {
-              onSelect(item.route);
+              if (item.onPress) {
+                item.onPress();
+              } else if (item.route && onSelect) {
+                onSelect(item.route);
+              }
               onClose();
             }}
           >

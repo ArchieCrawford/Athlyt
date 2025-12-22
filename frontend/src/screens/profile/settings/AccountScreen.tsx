@@ -1,22 +1,21 @@
 import { Alert, StyleSheet, Text, View } from "react-native";
+import { useSelector } from "react-redux";
 import Screen from "../../../components/layout/Screen";
 import { useTheme } from "../../../theme/useTheme";
+import { RootState } from "../../../redux/store";
 import SettingsRow from "./SettingsRow";
-import { supabase } from "../../../../supabaseClient";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { SettingsStackParamList } from "../../../navigation/settings";
 
-export default function SettingsHomeScreen() {
+export default function SettingsAccountScreen() {
   const theme = useTheme();
+  const user = useSelector((state: RootState) => state.auth.currentUser);
   const navigation =
     useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      Alert.alert("Logout failed", error.message);
-    }
+  const handleDeleteAccount = () => {
+    Alert.alert("Delete account", "This feature is coming soon.");
   };
 
   const styles = StyleSheet.create({
@@ -43,46 +42,33 @@ export default function SettingsHomeScreen() {
       borderColor: "#E5E5E5",
       backgroundColor: "#ffffff",
     },
+    helper: {
+      paddingHorizontal: theme.spacing.lg,
+      color: "#6B6B6B",
+      marginBottom: theme.spacing.md,
+    },
   });
 
   return (
     <Screen scroll padding={false} style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionTitle}>Account</Text>
+      <Text style={styles.sectionTitle}>Account details</Text>
       <View style={styles.sectionCard}>
+        <SettingsRow label="Email" value={user?.email ?? "Not set"} />
+        <SettingsRow label="Phone" value="Not set" />
         <SettingsRow
-          label="Account"
-          onPress={() => navigation.navigate("Account")}
+          label="Change password"
+          onPress={() => navigation.navigate("ChangePassword")}
         />
       </View>
 
-      <Text style={styles.sectionTitle}>Content & display</Text>
+      <Text style={styles.sectionTitle}>Manage</Text>
+      <Text style={styles.helper}>Delete account is permanent.</Text>
       <View style={styles.sectionCard}>
         <SettingsRow
-          label="Privacy"
-          onPress={() => navigation.navigate("Privacy")}
-        />
-        <SettingsRow
-          label="Security & permissions"
-          onPress={() => navigation.navigate("SecurityPermissions")}
-        />
-        <SettingsRow
-          label="Notifications"
-          onPress={() => navigation.navigate("Notifications")}
-        />
-      </View>
-
-      <Text style={styles.sectionTitle}>Support</Text>
-      <View style={styles.sectionCard}>
-        <SettingsRow label="Legal" onPress={() => navigation.navigate("Legal")} />
-      </View>
-
-      <Text style={styles.sectionTitle}>Logout</Text>
-      <View style={styles.sectionCard}>
-        <SettingsRow
-          label="Log out"
+          label="Delete account"
           destructive
           showChevron={false}
-          onPress={handleLogout}
+          onPress={handleDeleteAccount}
         />
       </View>
     </Screen>
