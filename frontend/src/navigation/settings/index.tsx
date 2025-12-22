@@ -11,6 +11,9 @@ import TermsScreen from "../../screens/legal/TermsScreen";
 import PrivacyScreen from "../../screens/legal/PrivacyScreen";
 import CommunityGuidelinesScreen from "../../screens/legal/CommunityGuidelinesScreen";
 import AthleteContentLicenseScreen from "../../screens/legal/AthleteContentLicenseScreen";
+import { Feather } from "@expo/vector-icons";
+import { Pressable } from "react-native";
+import { useTheme } from "../../theme/useTheme";
 
 export type SettingsStackParamList = {
   SettingsHome: undefined;
@@ -32,9 +35,12 @@ const screenOptions = {
   headerStyle: { backgroundColor: "#ffffff" },
   headerTintColor: "#111111",
   contentStyle: { backgroundColor: "#ffffff" },
+  headerBackTitleVisible: false,
 };
 
 export default function SettingsStack() {
+  const theme = useTheme();
+
   return (
     <Stack.Navigator
       initialRouteName="SettingsHome"
@@ -43,7 +49,17 @@ export default function SettingsStack() {
       <Stack.Screen
         name="SettingsHome"
         component={SettingsHomeScreen}
-        options={{ title: "Settings" }}
+        options={({ navigation }) => ({
+          title: "Settings",
+          headerLeft: () => (
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={{ padding: 8 }}
+            >
+              <Feather name="chevron-left" size={22} color={theme.colors.text} />
+            </Pressable>
+          ),
+        })}
       />
       <Stack.Screen
         name="Account"
