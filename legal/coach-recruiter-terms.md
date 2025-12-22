@@ -2,7 +2,7 @@
 
 Coach & Recruiter Terms of Use
 
-Last Updated: [DATE]
+Last Updated: December 21, 2025
 
 These terms apply to coaches, recruiters, and institutional users.
 

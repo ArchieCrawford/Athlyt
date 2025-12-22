@@ -2,7 +2,7 @@
 
 Athlyt Terms of Service
 
-Last Updated: [DATE]
+Last Updated: December 21, 2025
 
 Welcome to Athlyt. These Terms of Service (“Terms”) govern your access to and use of the Athlyt mobile application, website, and related services (collectively, the “Platform”). By creating an account or using Athlyt, you agree to these Terms.
 

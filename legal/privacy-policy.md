@@ -2,7 +2,7 @@
 
 Athlyt Privacy Policy
 
-Last Updated: [DATE]
+Last Updated: December 21, 2025
 
 Athlyt values your privacy. This policy explains how we collect, use, and protect your information.
 

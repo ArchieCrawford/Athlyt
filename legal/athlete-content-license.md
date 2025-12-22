@@ -1,6 +1,6 @@
 Athlete Content & Name, Image, and Likeness (NIL) License
 
-Last Updated: [DATE]
+Last Updated: December 21, 2025
 
 This Athlete Content & Name, Image, and Likeness License (“License”) explains how content uploaded by athletes is used on Athlyt.
 

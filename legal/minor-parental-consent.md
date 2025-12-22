@@ -2,7 +2,7 @@
 
 Youth Athlete Safety & Consent Policy
 
-Last Updated: [DATE]
+Last Updated: December 21, 2025
 
 Athlyt is committed to protecting young athletes.
 

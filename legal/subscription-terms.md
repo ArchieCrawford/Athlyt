@@ -2,7 +2,7 @@
 
 Athlyt Pro Membership Terms
 
-Last Updated: [DATE]
+Last Updated: December 21, 2025
 
 Pro Features
 
