@@ -2,9 +2,9 @@ export const athleteContentLicenseText = `Athlete Content & Name, Image, and Lik
 
 Last Updated: December 21, 2025
 
-This Athlete Content & Name, Image, and Likeness License ("License") explains how content uploaded by athletes is used on Athlyt.
+This Athlete Content & Name, Image, and Likeness License ("License") explains how content uploaded by athletes is used on Tayp.
 
-This License applies to all athletes who upload videos, images, or other media to the Athlyt platform.
+This License applies to all athletes who upload videos, images, or other media to the Tayp platform.
 
 Ownership of Content and Likeness
 
@@ -16,21 +16,21 @@ All videos, images, and media they upload
 
 Any athletic performance captured in their content
 
-Athlyt does not claim ownership of athlete content or NIL rights.
+Tayp does not claim ownership of athlete content or NIL rights.
 
-License Granted to Athlyt
+License Granted to Tayp
 
-By uploading content to Athlyt, you grant Athlyt a limited, non-exclusive, revocable, worldwide license to:
+By uploading content to Tayp, you grant Tayp a limited, non-exclusive, revocable, worldwide license to:
 
 Host, store, and transcode your content
 
-Display and stream your content on the Athlyt platform
+Display and stream your content on the Tayp platform
 
 Make your content available to permitted users, including verified coaches and recruiters
 
 Use your content solely for operating, maintaining, and improving the platform
 
-This license does not allow Athlyt to sell, sublicense, or commercially exploit your content or likeness.
+This license does not allow Tayp to sell, sublicense, or commercially exploit your content or likeness.
 
 Purpose of Use
 
@@ -42,13 +42,13 @@ On your athlete profile
 
 To verified coaches and recruiters for evaluation purposes
 
-Athlyt does not guarantee visibility, recruiting interest, scholarships, or athletic outcomes.
+Tayp does not guarantee visibility, recruiting interest, scholarships, or athletic outcomes.
 
 Content Removal and License Revocation
 
 You may remove your content at any time through your account settings.
 
-Upon removal, Athlyt's license to that content ends, except for:
+Upon removal, Tayp's license to that content ends, except for:
 
 Temporary copies required for technical processing
 
@@ -70,11 +70,11 @@ Minors
 
 If you are under 18, you represent that you have obtained permission from a parent or legal guardian to upload content and grant this license.
 
-Parents or guardians may request review or removal of content by contacting Athlyt support.
+Parents or guardians may request review or removal of content by contacting Tayp support.
 
 No Endorsement or Partnership
 
-Use of athlete content on Athlyt does not imply:
+Use of athlete content on Tayp does not imply:
 
 Sponsorship
 
@@ -84,10 +84,10 @@ Employment
 
 Agency or representation relationship
 
-Athlyt is not an athlete agent and does not negotiate on behalf of athletes.
+Tayp is not an athlete agent and does not negotiate on behalf of athletes.
 
 Contact
 
 Questions regarding this License may be directed to:
-support@athlyt.com
+support@tayp.com
 (or your preferred contact)`;

@@ -10,15 +10,14 @@ import styles from "./styles";
 import { RootStackParamList } from "../../../../navigation/main";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-interface EditProfileFieldScreenProps {
-  route: RouteProp<RootStackParamList, "editProfileField">;
-  navigation: NativeStackNavigationProp<RootStackParamList, "editProfileField">;
-}
+type EditProfileFieldRoute = RouteProp<RootStackParamList, "editProfileField">;
 
 export default function EditProfileFieldScreen({
   route,
-}: EditProfileFieldScreenProps) {
-  const { title, field, value, maxLength, multiline } = route.params as any;
+}: {
+  route: EditProfileFieldRoute;
+}) {
+  const { title, field, value, maxLength, multiline } = route.params;
   const [textInputValue, setTextInputValue] = useState(value);
   const navigation = useNavigation();
 

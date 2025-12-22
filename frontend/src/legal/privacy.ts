@@ -1,10 +1,10 @@
 export const privacyText = `2) PRIVACY POLICY
 
-Athlyt Privacy Policy
+Tayp Privacy Policy
 
 Last Updated: [DATE]
 
-Athlyt values your privacy. This policy explains how we collect, use, and protect your information.
+Tayp values your privacy. This policy explains how we collect, use, and protect your information.
 
 Information We Collect
 
@@ -20,11 +20,11 @@ Device and technical data
 
 Biometric & Media Data
 
-Videos may contain identifiable features such as face and voice. Athlyt uses this data only to operate the Platform and does not sell biometric data.
+Videos may contain identifiable features such as face and voice. Tayp uses this data only to operate the Platform and does not sell biometric data.
 
 How We Use Data
 
-To operate and improve Athlyt
+To operate and improve Tayp
 
 To display content to permitted users
 
@@ -34,7 +34,7 @@ To ensure safety and compliance
 
 Minors’ Privacy
 
-Athlyt does not knowingly collect data from children under 13. If such data is discovered, it will be deleted.
+Tayp does not knowingly collect data from children under 13. If such data is discovered, it will be deleted.
 
 Sharing
 

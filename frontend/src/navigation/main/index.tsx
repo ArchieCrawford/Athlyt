@@ -47,7 +47,13 @@ export type RootStackParamList = {
     mediaType?: "video" | "image";
   };
   editProfile: undefined;
-  editProfileField: { title: string; field: string; value: string };
+  editProfileField: {
+    title: string;
+    field: string;
+    value: string;
+    maxLength?: number;
+    multiline?: boolean;
+  };
   chatSingle: { chatId?: string; contactId?: string };
   settings: NavigatorScreenParams<SettingsStackParamList>;
   Saved: undefined;
