@@ -7,7 +7,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "format": "prettier \"**/*.{ts,tsx}\" --write"
+    "format": "prettier \"**/*.{ts,tsx}\" --write",
+    "bundle:ios": "expo export --platform ios",
+    "bundle:android": "expo export --platform android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -30,6 +32,7 @@
     "expo-linear-gradient": "~15.0.8",
     "expo-media-library": "~18.2.1",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.15",
     "expo-video": "~3.0.15",
     "expo-video-thumbnails": "~10.0.8",
     "react": "19.1.0",
