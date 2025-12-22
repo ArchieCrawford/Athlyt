@@ -8,6 +8,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "format": "prettier \"**/*.{ts,tsx}\" --write",
+    "build:ios": "powershell -ExecutionPolicy Bypass -File ./scripts/build.ps1 -Platform ios -Profile production",
+    "build:android": "powershell -ExecutionPolicy Bypass -File ./scripts/build.ps1 -Platform android -Profile production",
+    "build:all": "powershell -ExecutionPolicy Bypass -File ./scripts/build.ps1 -Platform all -Profile production",
     "bundle:ios": "expo export --platform ios",
     "bundle:android": "expo export --platform android"
   },
