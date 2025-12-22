@@ -19,6 +19,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/main";
 import { AppDispatch } from "../../redux/store";
 import { HomeStackParamList } from "../../navigation/home";
+import { logEvent } from "../../services/telemetry";
 
 interface SavePostScreenProps {
   route: RouteProp<RootStackParamList, "savePost">;
@@ -35,6 +36,7 @@ export default function SavePostScreen({ route }: SavePostScreenProps) {
   const dispatch: AppDispatch = useDispatch();
   const handleSavePost = () => {
     setRequestRunning(true);
+    logEvent("upload_start", { mediaType });
     dispatch(
       createPost({
         description,
@@ -44,10 +46,14 @@ export default function SavePostScreen({ route }: SavePostScreenProps) {
       }),
     )
       .unwrap()
-      .then(() => navigation.navigate("feed"))
+      .then(() => {
+        logEvent("upload_success", { mediaType });
+        navigation.navigate("feed");
+      })
       .catch((err) => {
         const message = typeof err === "string" ? err : err?.message;
         Alert.alert("Post failed", message || "Unable to create post");
+        logEvent("upload_fail", { mediaType, error: message });
         setRequestRunning(false);
       });
   };

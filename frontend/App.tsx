@@ -9,6 +9,10 @@ import ThemeProvider from "./src/theme/ThemeProvider";
 import { StatusBar } from "expo-status-bar";
 import { MD3DarkTheme, Provider as PaperProvider } from "react-native-paper";
 import { tokens } from "./src/theme/tokens";
+import { useEffect } from "react";
+import * as Updates from "expo-updates";
+import { AppState, AppStateStatus } from "react-native";
+import { logEvent, startSession } from "./src/services/telemetry";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +43,35 @@ const paperTheme = {
 };
 
 function ThemedRoute() {
+  useEffect(() => {
+    startSession().then(() => {
+      logEvent("app_open");
+    });
+    const sub = AppState.addEventListener(
+      "change",
+      (state: AppStateStatus) => {
+        if (state === "background") {
+          logEvent("app_background");
+        }
+      },
+    );
+    return () => sub.remove();
+  }, []);
+
+
+  useEffect(() => {
+    try {
+      console.log("UPDATES STATE", {
+        enabled: Updates.isEnabled,
+        updateId: Updates.updateId,
+        channel: (Updates as any).channel ?? undefined,
+        url: (Updates as any).manifest?.extra?.expoClient?.updates?.url,
+      });
+    } catch (error) {
+      console.log("UPDATES LOG ERROR", error);
+    }
+  }, []);
+
   return (
     <>
       <StatusBar style="light" backgroundColor="#000000" />

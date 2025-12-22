@@ -6,6 +6,7 @@ import { useTheme } from "../../../theme/useTheme";
 import AppText from "../../ui/AppText";
 import Button from "../../ui/Button";
 import Input from "../../ui/Input";
+import { logAuthEvent } from "../../../services/telemetry";
 
 export interface AuthDetailsProps {
   authPage: 0 | 1;
@@ -42,6 +43,7 @@ export default function AuthDetails({
       .catch((err) => {
         const msg = err?.message || "Login failed. Check your details.";
         setMenuMessage(msg);
+        logAuthEvent("login_failed", { email, error: msg });
       });
   };
 

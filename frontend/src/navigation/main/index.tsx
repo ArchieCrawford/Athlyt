@@ -33,6 +33,7 @@ import ActivityCenterScreen from "../../screens/profile/menu/ActivityCenterScree
 import HashtagResultsScreen from "../../screens/search/HashtagResults";
 import useAuth from "../../hooks/useAuth";
 import { tokens } from "../../theme/tokens";
+import { logEvent } from "../../services/telemetry";
 import SettingsStack, { SettingsStackParamList } from "../settings";
 
 export type RootStackParamList = {
@@ -226,8 +227,18 @@ export default function Route() {
     return <LoadingScreen />;
   }
 
+  const handleStateChange = (state: any) => {
+    try {
+      const route = state?.routes?.[state.index ?? 0];
+      const name = route?.name ?? "unknown";
+      logEvent("screen_view", { route: name });
+    } catch (error) {
+      console.log("log screen_view error", error);
+    }
+  };
+
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} onStateChange={handleStateChange}>
       {isAuthed ? (
         <AuthedStack screenOptions={screenOptions} />
       ) : (

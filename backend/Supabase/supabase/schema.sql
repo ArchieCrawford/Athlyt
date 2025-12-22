@@ -15,6 +15,77 @@ create table if not exists public."user" (
   created_at timestamptz default now()
 );
 
+-- Admin users (dashboard access)
+create table if not exists public.admin_users (
+  uid uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz default now()
+);
+
+-- App events
+create table if not exists public.app_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public."user"(uid),
+  event text not null,
+  props jsonb,
+  created_at timestamptz default now()
+);
+
+-- Auth events
+create table if not exists public.auth_events (
+  id uuid primary key default gen_random_uuid(),
+  email text,
+  user_id uuid references public."user"(uid),
+  event text not null,
+  error text,
+  created_at timestamptz default now()
+);
+
+alter table public.admin_users enable row level security;
+alter table public.app_events enable row level security;
+alter table public.auth_events enable row level security;
+
+drop policy if exists "Admins can select admin_users" on public.admin_users;
+create policy "Admins can select admin_users"
+  on public.admin_users
+  for select
+  using (exists (select 1 from public.admin_users a where a.uid = auth.uid()));
+
+drop policy if exists "Admins select app_events" on public.app_events;
+create policy "Admins select app_events"
+  on public.app_events
+  for select
+  using (exists (select 1 from public.admin_users a where a.uid = auth.uid()));
+
+drop policy if exists "Users insert own app_events" on public.app_events;
+create policy "Users insert own app_events"
+  on public.app_events
+  for insert
+  with check (
+    (auth.uid() is not null and (user_id is null or user_id = auth.uid()))
+    or (auth.uid() is null and user_id is null)
+  );
+
+drop policy if exists "Admins select auth_events" on public.auth_events;
+create policy "Admins select auth_events"
+  on public.auth_events
+  for select
+  using (exists (select 1 from public.admin_users a where a.uid = auth.uid()));
+
+drop policy if exists "Insert auth_events" on public.auth_events;
+create policy "Insert auth_events"
+  on public.auth_events
+  for insert
+  with check (true);
+
+create index if not exists app_events_created_idx on public.app_events (created_at);
+create index if not exists app_events_event_idx on public.app_events (event);
+create index if not exists app_events_user_idx on public.app_events (user_id);
+create index if not exists app_events_session_idx on public.app_events (session_id);
+
+create index if not exists auth_events_created_idx on public.auth_events (created_at);
+create index if not exists auth_events_event_idx on public.auth_events (event);
+create index if not exists auth_events_email_idx on public.auth_events (email);
+
 -- Posts
 create table if not exists public.post (
   id uuid primary key default gen_random_uuid(),

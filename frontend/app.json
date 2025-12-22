@@ -42,6 +42,10 @@
     "plugins": [
       "expo-video",
       "expo-font"
-    ]
+    ],
+    "updates": {
+      "enabled": false,
+      "checkAutomatically": "ON_ERROR_RECOVERY"
+    }
   }
 }
