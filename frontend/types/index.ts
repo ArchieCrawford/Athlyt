@@ -24,6 +24,7 @@ export interface User {
   email: string;
   displayName: string | null;
   photoURL?: string;
+  bio?: string | null;
   followingCount: number;
   followersCount: number;
   likesCount: number;

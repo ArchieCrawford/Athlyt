@@ -15,9 +15,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
   },
-  emailText: {
-    padding: 20,
-  },
   counterNumberText: {
     fontWeight: "bold",
     fontSize: 16,

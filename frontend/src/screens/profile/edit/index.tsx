@@ -70,6 +70,26 @@ export default function EditProfileScreen() {
             <Feather name="chevron-right" size={20} color="gray" />
           </View>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.fieldItemContainer}
+          onPress={() =>
+            navigation.navigate("editProfileField", {
+              title: "Bio",
+              field: "bio",
+              value: auth.currentUser?.bio ?? "",
+              maxLength: 100,
+              multiline: true,
+            })
+          }
+        >
+          <Text>Bio</Text>
+          <View style={styles.fieldValueContainer}>
+            <Text numberOfLines={1} style={{ flex: 1 }}>
+              {auth.currentUser?.bio ? auth.currentUser.bio : "Add bio"}
+            </Text>
+            <Feather name="chevron-right" size={20} color="gray" />
+          </View>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

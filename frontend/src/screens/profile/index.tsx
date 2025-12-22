@@ -51,7 +51,7 @@ export default function ProfileScreen({
   }, [user]);
 
   if (!user) {
-    return <></>;
+    return null;
   }
 
   const handleLogout = async () => {

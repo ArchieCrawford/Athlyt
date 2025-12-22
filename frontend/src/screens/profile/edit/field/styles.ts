@@ -6,6 +6,7 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     padding: 20,
+    gap: 12,
   },
   title: {
     fontWeight: "bold",

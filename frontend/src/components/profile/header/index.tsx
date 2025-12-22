@@ -106,10 +106,30 @@ export default function ProfileHeader({ user }: { user: User }) {
         <Avatar
           size={88}
           uri={user.photoURL}
-          label={user.displayName || user.email}
+          label={user.displayName || `@user`}
           accentRing={currentUserId !== user.uid}
         />
-        <AppText variant="subtitle">{user.displayName || user.email}</AppText>
+        <AppText variant="subtitle">
+          {user.displayName || `@user`}
+        </AppText>
+        {user.bio ? (
+          <AppText variant="body" style={{ textAlign: "center" }}>
+            {user.bio}
+          </AppText>
+        ) : currentUserId === user.uid ? (
+          <Button
+            title="Add bio"
+            variant="ghost"
+            fullWidth={false}
+            onPress={() =>
+              navigation.navigate("editProfileField", {
+                title: "Bio",
+                field: "bio",
+                value: user.bio || "",
+              })
+            }
+          />
+        ) : null}
         <View
           style={{
             flexDirection: "row",

@@ -18,7 +18,7 @@ interface EditProfileFieldScreenProps {
 export default function EditProfileFieldScreen({
   route,
 }: EditProfileFieldScreenProps) {
-  const { title, field, value } = route.params;
+  const { title, field, value, maxLength, multiline } = route.params as any;
   const [textInputValue, setTextInputValue] = useState(value);
   const navigation = useNavigation();
 
@@ -38,8 +38,21 @@ export default function EditProfileFieldScreen({
         <TextInput
           style={generalStyles.textInput}
           value={textInputValue}
-          onChangeText={setTextInputValue}
+          onChangeText={(txt) => {
+            if (maxLength && txt.length > maxLength) {
+              setTextInputValue(txt.slice(0, maxLength));
+              return;
+            }
+            setTextInputValue(txt);
+          }}
+          maxLength={maxLength}
+          multiline={multiline}
         />
+        {maxLength ? (
+          <Text style={{ marginTop: 8, color: "gray" }}>
+            {textInputValue.length}/{maxLength}
+          </Text>
+        ) : null}
       </View>
     </SafeAreaView>
   );
