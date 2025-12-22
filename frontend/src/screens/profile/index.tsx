@@ -8,18 +8,18 @@ import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/conte
 import { useUser } from "../../hooks/useUser";
 import { getPostsByUserId } from "../../services/posts";
 import { Post } from "../../../types";
-import { RouteProp } from "@react-navigation/native";
+import { RouteProp, useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
-import { ProfileDrawerParamList } from "../../navigation/profile";
 import Screen from "../../components/layout/Screen";
 import { useTheme } from "../../theme/useTheme";
+import ProfileMenuSheet from "../../components/profile/ProfileMenuSheet";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 type ProfileScreenRouteProp =
   | RouteProp<RootStackParamList, "profileOther">
   | RouteProp<HomeStackParamList, "Me">
-  | RouteProp<FeedStackParamList, "feedProfile">
-  | RouteProp<ProfileDrawerParamList, "ProfileMain">;
+  | RouteProp<FeedStackParamList, "feedProfile">;
 
 export default function ProfileScreen({
   route,
@@ -27,8 +27,11 @@ export default function ProfileScreen({
   route: ProfileScreenRouteProp;
 }) {
   const theme = useTheme();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { initialUserId } = route.params;
   const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const providerUserId = useContext(CurrentUserProfileItemInViewContext);
 
@@ -52,7 +55,7 @@ export default function ProfileScreen({
 
   return (
     <Screen padding={false}>
-      <ProfileNavBar user={user} />
+      <ProfileNavBar user={user} onMenuPress={() => setMenuOpen(true)} />
       <ScrollView
         contentContainerStyle={{
           paddingBottom: theme.spacing.xl,
@@ -64,6 +67,19 @@ export default function ProfileScreen({
           <ProfilePostList posts={userPosts} />
         </View>
       </ScrollView>
+      <ProfileMenuSheet
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={[
+          { label: "Settings and privacy", icon: "settings", route: "SettingsAndPrivacy" },
+          { label: "Saved", icon: "bookmark", route: "Saved" },
+          { label: "QR code", icon: "grid", route: "ProfileQr" },
+          { label: "Activity center", icon: "activity", route: "ActivityCenter" },
+        ]}
+        onSelect={(routeName) =>
+          navigation.navigate(routeName as keyof RootStackParamList)
+        }
+      />
     </Screen>
   );
 }

@@ -9,7 +9,13 @@ import AuthScreen from "../../screens/auth";
 import Landing from "../../screens/auth/Landing";
 import { RootState } from "../../redux/store";
 import HomeScreen from "../home";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import SavePostScreen from "../../screens/savePost";
 import EditProfileScreen from "../../screens/profile/edit";
 import EditProfileFieldScreen from "../../screens/profile/edit/field";
@@ -18,6 +24,13 @@ import Modal from "../../components/modal";
 import FeedScreen from "../../features/feed/FeedScreen";
 import ProfileScreen from "../../screens/profile";
 import ChatSingleScreen from "../../screens/chat/single";
+import SettingsAndPrivacyScreen from "../../screens/profile/settings";
+import SavedScreen from "../../screens/profile/menu/SavedScreen";
+import ProfileQrScreen from "../../screens/profile/menu/ProfileQrScreen";
+import ActivityCenterScreen from "../../screens/profile/menu/ActivityCenterScreen";
+import TermsScreen from "../../screens/legal/TermsScreen";
+import PrivacyScreen from "../../screens/legal/PrivacyScreen";
+import CommunityGuidelinesScreen from "../../screens/legal/CommunityGuidelinesScreen";
 import useAuth from "../../hooks/useAuth";
 import { tokens } from "../../theme/tokens";
 
@@ -36,6 +49,13 @@ export type RootStackParamList = {
   editProfileField: { title: string; field: string; value: string };
   chatSingle: { chatId?: string; contactId?: string };
   changePassword: undefined;
+  SettingsAndPrivacy: undefined;
+  Saved: undefined;
+  ProfileQr: undefined;
+  ActivityCenter: undefined;
+  LegalTerms: undefined;
+  LegalPrivacy: undefined;
+  LegalCommunity: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -59,9 +79,15 @@ const screenOptions: NativeStackNavigationOptions = {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
+    backgroundColor: tokens.colors.bg,
+    width: "100%",
+    height: "100%",
+  },
+  loadingOverlay: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: tokens.colors.bg,
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
     padding: tokens.spacing.lg,
   },
   loadingText: {
@@ -142,16 +168,57 @@ function AuthedStack({
         component={ChangePasswordScreen}
         options={{ title: "Update Password" }}
       />
+      <Stack.Screen
+        name="SettingsAndPrivacy"
+        component={SettingsAndPrivacyScreen}
+        options={{ title: "Settings and privacy" }}
+      />
+      <Stack.Screen
+        name="Saved"
+        component={SavedScreen}
+        options={{ title: "Saved" }}
+      />
+      <Stack.Screen
+        name="ProfileQr"
+        component={ProfileQrScreen}
+        options={{ title: "QR code" }}
+      />
+      <Stack.Screen
+        name="ActivityCenter"
+        component={ActivityCenterScreen}
+        options={{ title: "Activity center" }}
+      />
+      <Stack.Screen
+        name="LegalTerms"
+        component={TermsScreen}
+        options={{ title: "Terms of Service" }}
+      />
+      <Stack.Screen
+        name="LegalPrivacy"
+        component={PrivacyScreen}
+        options={{ title: "Privacy Policy" }}
+      />
+      <Stack.Screen
+        name="LegalCommunity"
+        component={CommunityGuidelinesScreen}
+        options={{ title: "Community Guidelines" }}
+      />
     </Stack.Navigator>
   );
 }
 
 function LoadingScreen() {
   return (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator color={tokens.colors.accent} />
-      <Text style={styles.loadingText}>Loading...</Text>
-    </View>
+    <ImageBackground
+      source={require("../../../assets/loadscreen.png")}
+      resizeMode="cover"
+      style={styles.loadingContainer}
+    >
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator color={tokens.colors.accent} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    </ImageBackground>
   );
 }
 

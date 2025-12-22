@@ -10,11 +10,16 @@ export default function ChangePasswordScreen() {
   const theme = useTheme();
   const { signOut } = useAuth();
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const onUpdate = async () => {
     if (!password.trim()) {
       Alert.alert("Password required", "Please enter a new password.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Passwords do not match", "Please confirm your new password.");
       return;
     }
     setLoading(true);
@@ -35,6 +40,18 @@ export default function ChangePasswordScreen() {
         placeholder="New password"
         value={password}
         onChangeText={setPassword}
+        style={{
+          backgroundColor: theme.colors.surface2,
+          color: theme.colors.text,
+          borderRadius: theme.radius.md,
+          padding: theme.spacing.md,
+        }}
+      />
+      <TextInput
+        secureTextEntry
+        placeholder="Confirm new password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
         style={{
           backgroundColor: theme.colors.surface2,
           color: theme.colors.text,

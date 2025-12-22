@@ -3,22 +3,14 @@ import { Feather } from "@expo/vector-icons";
 import { RootState } from "../../../redux/store";
 import { useTheme } from "../../../theme/useTheme";
 import AppText from "../../ui/AppText";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
-
 export default function ProfileNavBar({
   user,
+  onMenuPress,
 }: {
   user: RootState["auth"]["currentUser"];
+  onMenuPress?: () => void;
 }) {
   const theme = useTheme();
-  const navigation = useNavigation();
-
-  const openMenu = () => {
-    const parent = navigation.getParent();
-    if (parent?.getState?.().type === "drawer") {
-      parent.dispatch(DrawerActions.openDrawer());
-    }
-  };
 
   return (
     user && (
@@ -43,7 +35,7 @@ export default function ProfileNavBar({
         </AppText>
         <Pressable
           style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-          onPress={openMenu}
+          onPress={onMenuPress}
         >
           <Feather name="menu" size={22} color={theme.colors.text} />
         </Pressable>
