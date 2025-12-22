@@ -8,6 +8,8 @@ export interface Post {
   description: string;
   likesCount: number;
   commentsCount: number;
+  bookmarksCount?: number;
+  sharesCount?: number;
   creation: string;
 }
 

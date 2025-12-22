@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -7,7 +7,8 @@ import {
   ViewToken,
   useWindowDimensions,
 } from "react-native";
-import { RouteProp } from "@react-navigation/native";
+import { RouteProp, useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
 import { FeedStackParamList } from "../../navigation/feed/types";
@@ -18,6 +19,10 @@ import { useTheme } from "../../theme/useTheme";
 import AppText from "../../components/ui/AppText";
 import Screen from "../../components/layout/Screen";
 import FeedItem, { FeedItemHandles } from "./FeedItem";
+import FeedHeaderTabs, { FeedTabKey } from "./components/FeedHeaderTabs";
+import { rankPosts } from "./ranker";
+import { getFollowingIds } from "../../services/user";
+import { MaterialBottomTabNavigationProp } from "@react-navigation/material-bottom-tabs";
 
 type FeedScreenRouteProp =
   | RouteProp<RootStackParamList, "userPosts">
@@ -35,6 +40,8 @@ export default function FeedScreen({
 }) {
   const theme = useTheme();
   const { height, width } = useWindowDimensions();
+  const navigation =
+    useNavigation<MaterialBottomTabNavigationProp<HomeStackParamList>>();
   const { setCurrentUserProfileItemInView } = useContext(
     CurrentUserProfileItemInViewContext,
   );
@@ -47,9 +54,15 @@ export default function FeedScreen({
   const profile = params.profile ?? false;
 
   const [posts, setPosts] = useState<Post[] | null>(null);
+  const [rankedPosts, setRankedPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<FeedTabKey>("For You");
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [muted, setMuted] = useState(false);
   const mediaRefs = useRef<Record<string, FeedItemHandles | null>>({});
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const [seenLoaded, setSeenLoaded] = useState(false);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -69,6 +82,35 @@ export default function FeedScreen({
     fetchPosts();
   }, [fetchPosts]);
 
+  useEffect(() => {
+    if (profile) {
+      return;
+    }
+    getFollowingIds().then(setFollowingIds).catch(() => setFollowingIds([]));
+  }, [profile]);
+
+  useEffect(() => {
+    if (profile) {
+      return;
+    }
+    AsyncStorage.getItem("feed_seen_ids")
+      .then((stored) => {
+        if (stored) {
+          const ids = JSON.parse(stored) as string[];
+          seenIdsRef.current = new Set(ids);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSeenLoaded(true));
+  }, [profile]);
+
+  useEffect(() => {
+    if (!posts || !seenLoaded) {
+      return;
+    }
+    setRankedPosts(rankPosts(posts, seenIdsRef.current));
+  }, [posts, seenLoaded]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchPosts();
@@ -76,28 +118,87 @@ export default function FeedScreen({
   }, [fetchPosts]);
 
   const onViewableItemsChanged = useRef(
-    ({ changed }: { changed: PostViewToken[] }) => {
-      changed.forEach((element) => {
-        const cell = mediaRefs.current[element.key];
+    ({ viewableItems }: { viewableItems: PostViewToken[] }) => {
+      const activeItem = viewableItems.find((item) => item.isViewable);
+      const activeId = activeItem?.item?.id ?? null;
 
-        if (cell) {
-          if (element.isViewable) {
-            if (!profile && setCurrentUserProfileItemInView) {
-              setCurrentUserProfileItemInView(element.item.creator);
-            }
-            cell.play();
-          } else {
-            cell.stop();
+      Object.entries(mediaRefs.current).forEach(([id, cell]) => {
+        if (!cell) {
+          return;
+        }
+        if (id === activeId) {
+          if (!profile && setCurrentUserProfileItemInView) {
+            setCurrentUserProfileItemInView(activeItem?.item.creator);
           }
+          cell.play();
+        } else {
+          cell.stop();
         }
       });
+
+      if (activeId && !seenIdsRef.current.has(activeId)) {
+        seenIdsRef.current.add(activeId);
+        AsyncStorage.setItem(
+          "feed_seen_ids",
+          JSON.stringify(Array.from(seenIdsRef.current)),
+        ).catch(() => {});
+      }
     },
   );
 
   const feedItemHeight = height;
+  const showTabs = !profile;
+
+  const visiblePosts = useMemo(() => {
+    if (!posts) {
+      return [];
+    }
+    if (profile) {
+      return posts;
+    }
+    if (activeTab === "Following") {
+      return posts.filter((post) => followingIds.includes(post.creator));
+    }
+    if (activeTab === "Friends") {
+      return posts.filter((post) => followingIds.includes(post.creator));
+    }
+    return rankedPosts ?? posts;
+  }, [activeTab, followingIds, posts, profile, rankedPosts]);
+
+  const emptyLabel = useMemo(() => {
+    if (error) {
+      return "Could not load posts";
+    }
+    if (profile) {
+      return "No posts yet";
+    }
+    if (activeTab === "Following") {
+      return "No posts from following";
+    }
+    if (activeTab === "Friends") {
+      return "No friends posts yet";
+    }
+    return "No posts yet";
+  }, [activeTab, error, profile]);
+
+  const handleSearchPress = () => {
+    const parent = navigation.getParent()?.getParent();
+    if (parent) {
+      parent.navigate("Discover" as never);
+      return;
+    }
+    navigation.navigate("Discover");
+  };
 
   return (
     <Screen fullBleed padding={false} style={{ backgroundColor: theme.colors.bg }}>
+      {showTabs ? (
+        <FeedHeaderTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onSearchPress={handleSearchPress}
+        />
+      ) : null}
       {posts === null ? (
         <View
           style={{
@@ -109,7 +210,7 @@ export default function FeedScreen({
         >
           <ActivityIndicator size="large" color={theme.colors.accent} />
         </View>
-      ) : posts.length === 0 ? (
+      ) : visiblePosts.length === 0 ? (
         <View
           style={{
             flex: 1,
@@ -120,9 +221,7 @@ export default function FeedScreen({
             backgroundColor: theme.colors.bg,
           }}
         >
-          <AppText variant="subtitle">
-            {error ? "Could not load posts" : "No posts yet"}
-          </AppText>
+          <AppText variant="subtitle">{emptyLabel}</AppText>
           <AppText variant="muted" style={{ textAlign: "center" }}>
             {error
               ? "Check your connection and try again."
@@ -133,19 +232,22 @@ export default function FeedScreen({
         </View>
       ) : (
         <FlatList
-          data={posts}
+          data={visiblePosts}
           windowSize={4}
           initialNumToRender={2}
           maxToRenderPerBatch={2}
           removeClippedSubviews
           viewabilityConfig={{
-            itemVisiblePercentThreshold: 0,
+            itemVisiblePercentThreshold: 80,
+            minimumViewTime: 150,
           }}
           renderItem={({ item }) => (
             <FeedItem
               item={item}
               height={feedItemHeight}
               width={width}
+              muted={muted}
+              onToggleMute={() => setMuted((prev) => !prev)}
               ref={(feedRef) => {
                 mediaRefs.current[item.id] = feedRef;
               }}
@@ -155,6 +257,12 @@ export default function FeedScreen({
           snapToAlignment="start"
           keyExtractor={(item) => item.id}
           decelerationRate="fast"
+          snapToInterval={feedItemHeight}
+          getItemLayout={(_, index) => ({
+            length: feedItemHeight,
+            offset: feedItemHeight * index,
+            index,
+          })}
           onViewableItemsChanged={onViewableItemsChanged.current}
           refreshControl={
             <RefreshControl

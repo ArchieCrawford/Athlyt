@@ -64,6 +64,35 @@ export const getFeed = async (): Promise<Post[]> => {
   return posts;
 };
 
+export const queryPostsByDescription = async (query: string): Promise<Post[]> => {
+  if (!query) {
+    return [];
+  }
+  const { data, error } = await supabase
+    .from("post")
+    .select("*")
+    .ilike("description", `%${query}%`)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error("Failed to query posts: ", error);
+    throw error;
+  }
+
+  const posts = await Promise.all(
+    (data || []).map(async (item) =>
+      ensurePosterUrlForPost({
+        id: item.id,
+        ...item,
+        creation: item.creation ?? item.created_at,
+      } as Post),
+    ),
+  );
+
+  return posts;
+};
+
 /**
  * Gets the like state of a user in a specific post
  * @param {String} postId - id of the post

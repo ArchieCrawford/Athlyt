@@ -97,6 +97,60 @@ export const queryUsersByEmail = (email: string): Promise<SearchUser[]> => {
   });
 };
 
+export const queryUsersByName = (query: string): Promise<SearchUser[]> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (query === "") {
+        resolve([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("user")
+        .select("*")
+        .or(`displayName.ilike.${query}%,email.ilike.${query}%`)
+        .limit(15);
+
+      if (error) {
+        throw error;
+      }
+
+      const users = (data || []).map((item) => ({ id: item.uid, ...item })) as SearchUser[];
+      resolve(users);
+    } catch (error) {
+      console.error("Failed to query users: ", error);
+      reject(error);
+    }
+  });
+};
+
+export const getFollowingIds = async (): Promise<string[]> => {
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return [];
+    }
+
+    const { data, error: followingError } = await supabase
+      .from("following")
+      .select("following")
+      .eq("follower", user.id);
+
+    if (followingError) {
+      throw followingError;
+    }
+
+    return (data || []).map((row) => row.following as string);
+  } catch (error) {
+    console.error("Failed to load following list: ", error);
+    return [];
+  }
+};
+
 /**
  * fetches the doc corresponding to the id of a user.
  *

@@ -31,6 +31,7 @@ import ActivityCenterScreen from "../../screens/profile/menu/ActivityCenterScree
 import TermsScreen from "../../screens/legal/TermsScreen";
 import PrivacyScreen from "../../screens/legal/PrivacyScreen";
 import CommunityGuidelinesScreen from "../../screens/legal/CommunityGuidelinesScreen";
+import HashtagResultsScreen from "../../screens/search/HashtagResults";
 import useAuth from "../../hooks/useAuth";
 import { tokens } from "../../theme/tokens";
 
@@ -56,6 +57,7 @@ export type RootStackParamList = {
   LegalTerms: undefined;
   LegalPrivacy: undefined;
   LegalCommunity: undefined;
+  HashtagResults: { tag: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -202,6 +204,11 @@ function AuthedStack({
         name="LegalCommunity"
         component={CommunityGuidelinesScreen}
         options={{ title: "Community Guidelines" }}
+      />
+      <Stack.Screen
+        name="HashtagResults"
+        component={HashtagResultsScreen}
+        options={{ title: "Hashtag" }}
       />
     </Stack.Navigator>
   );

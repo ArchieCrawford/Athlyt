@@ -13,7 +13,7 @@ import { StyleSheet } from "react-native";
 
 export type HomeStackParamList = {
   feed: undefined;
-  Discover: undefined;
+  Discover: { query?: string } | undefined;
   Add: undefined;
   Inbox: undefined;
   Me: { initialUserId: string };

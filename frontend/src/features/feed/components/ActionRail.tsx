@@ -35,23 +35,37 @@ function ActionButton({ icon, label, onPress }: ActionButtonProps) {
 
 interface ActionRailProps {
   avatarUri?: string;
+  showFollow?: boolean;
   liked: boolean;
   likes: number;
   comments: number;
+  bookmarks: number;
+  sharesLabel?: string;
+  bookmarked?: boolean;
   onLike: () => void;
   onComment?: () => void;
   onShare?: () => void;
+  onBookmark?: () => void;
+  onAvatarPress?: () => void;
+  onFollowPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
 export default function ActionRail({
   avatarUri,
+  showFollow = true,
   liked,
   likes,
   comments,
+  bookmarks,
+  sharesLabel = "Share",
+  bookmarked = false,
   onLike,
   onComment,
   onShare,
+  onBookmark,
+  onAvatarPress,
+  onFollowPress,
   style,
 }: ActionRailProps) {
   const theme = useTheme();
@@ -63,15 +77,51 @@ export default function ActionRail({
           alignItems: "center",
           gap: theme.spacing.lg,
         },
+        avatarWrap: {
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        followBadge: {
+          position: "absolute",
+          bottom: -6,
+          alignSelf: "center",
+          width: 22,
+          height: 22,
+          borderRadius: 11,
+          backgroundColor: theme.colors.accent,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: 2,
+          borderColor: theme.colors.surface,
+        },
       }),
     [theme],
   );
 
   const heartColor = liked ? theme.colors.accent : theme.colors.text;
+  const bookmarkColor = bookmarked ? theme.colors.accent : theme.colors.text;
 
   return (
     <View style={[styles.container, style]}>
-      <Avatar size={44} uri={avatarUri} accentRing />
+      <View style={styles.avatarWrap}>
+        <Pressable
+          onPress={onAvatarPress}
+          style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}
+        >
+          <Avatar size={44} uri={avatarUri} accentRing />
+        </Pressable>
+        {showFollow ? (
+          <Pressable
+            onPress={onFollowPress}
+            style={({ pressed }) => [
+              styles.followBadge,
+              { opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Feather name="plus" size={12} color={theme.colors.bg} />
+          </Pressable>
+        ) : null}
+      </View>
       <ActionButton
         onPress={onLike}
         label={`${likes}`}
@@ -83,8 +133,13 @@ export default function ActionRail({
         icon={<Feather name="message-circle" size={24} color={theme.colors.text} />}
       />
       <ActionButton
+        onPress={onBookmark}
+        label={`${bookmarks}`}
+        icon={<Feather name="bookmark" size={22} color={bookmarkColor} />}
+      />
+      <ActionButton
         onPress={onShare}
-        label="Share"
+        label={sharesLabel}
         icon={<Feather name="send" size={22} color={theme.colors.text} />}
       />
     </View>
