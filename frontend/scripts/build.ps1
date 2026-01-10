@@ -65,6 +65,8 @@ try {
   Set-Location $Root
   Log "Build started. Platform=$Platform Profile=$Profile Root=$Root"
   Log "Log file: $LogFile"
+  Log "TestFlight note: this script can build/upload an IPA, but TestFlight invite links are created in App Store Connect (TestFlight tab)."
+  Log "If you already have a public invite link, you can expose it via env var TESTFLIGHT_PUBLIC_LINK and this script will print it at the end."
 
   RequireFile (Join-Path $Root "package.json")
   RequireFile (Join-Path $Root "eas.json")
@@ -116,6 +118,14 @@ try {
   } else {
     Run "npx eas build -p ios --profile $Profile $ni"
     Run "npx eas build -p android --profile $Profile $ni"
+  }
+
+  if ($Platform -eq "ios") {
+    Log "TestFlight: after the build is processed, create/share invites in App Store Connect → TestFlight."
+    Log "App Store Connect: https://appstoreconnect.apple.com/apps"
+    if ($env:TESTFLIGHT_PUBLIC_LINK) {
+      Log "TestFlight public link: $($env:TESTFLIGHT_PUBLIC_LINK)"
+    }
   }
 
   Log "Build finished successfully."
