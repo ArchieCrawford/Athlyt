@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { Image, View } from "react-native";
 import { useVideoPlayer, VideoSource, VideoView } from "expo-video";
 import styles from "./styles";
 import { Post } from "../../../../types";
@@ -27,10 +28,19 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
     const muxPosterUrl = muxPlaybackId
       ? `https://image.mux.com/${muxPlaybackId}/thumbnail.jpg`
       : undefined;
-    const videoUri = muxStreamUrl ?? item.media?.[0];
+    const rawMediaUri = item.media?.[0];
+    const inferredImage =
+      typeof rawMediaUri === "string" &&
+      /\.(png|jpe?g|webp|gif)$/i.test(rawMediaUri.split("?")[0]);
+    const isImage =
+      item.media_type === "image" || (!item.media_type && inferredImage);
+    const videoUri = isImage ? undefined : muxStreamUrl ?? rawMediaUri;
     const hasVideo = Boolean(videoUri);
-    const poster = item.poster_url || muxPosterUrl || item.media?.[1];
-    const source = (hasVideo ? { uri: videoUri } : { uri: "" }) as VideoSource;
+    const poster =
+      item.poster_url ||
+      muxPosterUrl ||
+      (isImage ? rawMediaUri : item.media?.[1] ?? rawMediaUri);
+    const source = ({ uri: hasVideo ? videoUri : "" } as VideoSource);
     const player = useVideoPlayer(source, (p) => {
       p.loop = true;
     });
@@ -106,14 +116,26 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
     return (
       <>
         {user && <PostSingleOverlay user={user} post={item} />}
-        <VideoView
-          style={styles.container}
-          contentFit="cover"
-          nativeControls={false}
-          poster={poster}
-          posterResizeMode="cover"
-          player={player}
-        />
+        {isImage || !hasVideo ? (
+          poster ? (
+            <Image
+              style={styles.container}
+              source={{ uri: poster }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.container} />
+          )
+        ) : (
+          <VideoView
+            style={styles.container}
+            contentFit="cover"
+            nativeControls={false}
+            poster={poster}
+            posterResizeMode="cover"
+            player={player}
+          />
+        )}
       </>
     );
   },

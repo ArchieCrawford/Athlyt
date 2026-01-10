@@ -1,37 +1,130 @@
-// supabase/functions/mux-webhook/index.ts
+// Edge Function: Mux webhook handler to persist playback_id/asset_id on posts
+// Expects env SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (aliases supported)
+// Expects env MUX_WEBHOOK_SECRET for signature verification
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.6";
 
+// Supabase CLI disallows secrets prefixed with SUPABASE_, so support aliases
 const supabaseUrl =
   Deno.env.get("SUPABASE_URL") ?? Deno.env.get("PROJECT_SUPABASE_URL");
 const supabaseKey =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
   Deno.env.get("PROJECT_SUPABASE_SERVICE_ROLE_KEY");
+const muxWebhookSecret = Deno.env.get("MUX_WEBHOOK_SECRET");
 
 if (!supabaseUrl || !supabaseKey) {
   console.error(
-    "Missing Supabase creds. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or PROJECT_* aliases).",
+    "Missing Supabase service role creds; set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
   );
+}
+
+if (!muxWebhookSecret) {
+  console.error("Missing Mux webhook secret; set MUX_WEBHOOK_SECRET");
 }
 
 const supabase =
   supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const encoder = new TextEncoder();
 
-function safeJsonParse(v: unknown) {
-  if (typeof v !== "string") return null;
+const toHex = (buffer: ArrayBuffer) =>
+  Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+const parseMuxSignature = (header: string | null) => {
+  if (!header) return null;
+  const parts = header.split(",");
+  let timestamp: string | null = null;
+  const signatures: string[] = [];
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+    if (key === "t" && value) {
+      timestamp = value;
+    } else if (key === "v1" && value) {
+      signatures.push(value);
+    }
+  }
+  if (!timestamp || signatures.length === 0) return null;
+  return { timestamp, signatures };
+};
+
+const verifyMuxSignature = async (
+  secret: string,
+  header: string | null,
+  body: string,
+) => {
+  const parsed = parseMuxSignature(header);
+  if (!parsed) return false;
+  const payload = `${parsed.timestamp}.${body}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(payload),
+  );
+  const expected = toHex(signature);
+  return parsed.signatures.some((sig) => sig === expected);
+};
+
+const safeJsonParse = (value: unknown) => {
+  if (typeof value !== "string") return null;
   try {
-    return JSON.parse(v);
+    return JSON.parse(value);
   } catch {
     return null;
   }
-}
+};
+
+const updatePost = async (
+  update: Record<string, unknown>,
+  postId?: string,
+  uploadId?: string,
+) => {
+  if (!supabase) {
+    return { error: new Error("Missing Supabase client") };
+  }
+  if (postId) {
+    return await supabase.from("post").update(update).eq("id", postId);
+  }
+  if (uploadId) {
+    return await supabase
+      .from("post")
+      .update(update)
+      .eq("mux_upload_id", uploadId);
+  }
+  return { error: null };
+};
 
 serve(async (req) => {
-  if (!supabase) return new Response("Server misconfigured", { status: 500 });
+  if (!supabase) {
+    return new Response("Server misconfigured", { status: 500 });
+  }
+  if (!muxWebhookSecret) {
+    return new Response("Server misconfigured", { status: 500 });
+  }
+
+  const rawBody = await req.text();
+  const signatureHeader = req.headers.get("mux-signature");
+  const signatureValid = await verifyMuxSignature(
+    muxWebhookSecret,
+    signatureHeader,
+    rawBody,
+  );
+
+  if (!signatureValid) {
+    console.error("Mux webhook signature invalid");
+    return new Response("Invalid signature", { status: 401 });
+  }
 
   let payload: any;
   try {
-    payload = await req.json();
+    payload = JSON.parse(rawBody);
   } catch (e) {
     return new Response(`Invalid JSON: ${String(e)}`, { status: 400 });
   }
@@ -39,67 +132,58 @@ serve(async (req) => {
   const type = payload?.type;
   const data = payload?.data;
 
-  if (type !== "video.asset.ready") {
+  if (!type) {
     return new Response("ok", { status: 200 });
   }
-
-  const assetId: string | undefined = data?.id;
-  const playbackId: string | undefined = data?.playback_ids?.[0]?.id;
-  const uploadId: string | undefined = data?.upload_id;
 
   const passthroughObj =
     safeJsonParse(data?.passthrough) ?? safeJsonParse(data?.upload?.passthrough);
   const postId: string | undefined = passthroughObj?.post_id;
 
-  if (!assetId || !playbackId) {
-    return new Response("Missing assetId/playbackId", { status: 200 });
-  }
-
-  const updateObj = {
-    mux_playback_id: playbackId,
-    mux_asset_id: assetId,
-    media_type: "video",
-  };
-
-  // 1) Best: deterministic by post_id from passthrough
-  if (postId) {
-    const { error } = await supabase.from("post").update(updateObj).eq("id", postId);
-    if (error) {
-      console.error("Mux webhook update failed (post_id)", error);
-      return new Response(error.message, { status: 500 });
+  if (type === "video.upload.asset_created") {
+    const assetId: string | undefined = data?.asset_id ?? data?.asset?.id;
+    const uploadId: string | undefined = data?.id ?? data?.upload_id;
+    if (!assetId) {
+      return new Response("ok", { status: 200 });
     }
+
+    const updateObj = {
+      mux_asset_id: assetId,
+      media_type: "video",
+    };
+    const { error } = await updatePost(updateObj, postId, uploadId);
+    if (error) {
+      console.error("Mux webhook asset_created update failed", error);
+      return new Response("Update failed", { status: 500 });
+    }
+    console.log("Mux webhook asset_created", { postId, uploadId, assetId });
     return new Response("ok", { status: 200 });
   }
 
-  // 2) Next best: deterministic by upload_id stored on post
-  if (uploadId) {
-    const { error } = await supabase
-      .from("post")
-      .update(updateObj)
-      .eq("mux_upload_id", uploadId);
+  if (type === "video.asset.ready") {
+    const assetId: string | undefined = data?.id;
+    const playbackId: string | undefined = data?.playback_ids?.[0]?.id;
+    const uploadId: string | undefined = data?.upload_id ?? data?.upload?.id;
+    if (!assetId || !playbackId) {
+      return new Response("ok", { status: 200 });
+    }
 
-    if (!error) return new Response("ok", { status: 200 });
-
-    console.error("Mux webhook update failed (mux_upload_id)", error);
-    return new Response(error.message, { status: 500 });
-  }
-
-  // 3) Last resort: strict match only (no null wildcards)
-  // Only run if we have at least one strict key to match on.
-  const orParts: string[] = [];
-  if (assetId) orParts.push(`mux_asset_id.eq.${assetId}`);
-  if (playbackId) orParts.push(`mux_playback_id.eq.${playbackId}`);
-
-  if (orParts.length === 0) return new Response("ok", { status: 200 });
-
-  const { error } = await supabase
-    .from("post")
-    .update(updateObj)
-    .or(orParts.join(","));
-
-  if (error) {
-    console.error("Mux webhook update failed (strict fallback)", error);
-    return new Response(error.message, { status: 500 });
+    const updateObj = {
+      mux_playback_id: playbackId,
+      mux_asset_id: assetId,
+      media_type: "video",
+    };
+    const { error } = await updatePost(updateObj, postId, uploadId);
+    if (error) {
+      console.error("Mux webhook asset_ready update failed", error);
+      return new Response("Update failed", { status: 500 });
+    }
+    console.log("Mux webhook asset_ready", {
+      postId,
+      uploadId,
+      assetId,
+      playbackId,
+    });
   }
 
   return new Response("ok", { status: 200 });

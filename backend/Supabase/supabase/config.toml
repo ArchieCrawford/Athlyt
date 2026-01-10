@@ -1,0 +1,3 @@
+# Supabase config overrides for edge functions.
+[functions.mux-webhook]
+verify_jwt = false

@@ -3,6 +3,7 @@ import uuid from "uuid-random";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import { supabase } from "../../../supabaseClient";
 import { saveMediaToStorage } from "../../services/utils";
+import { logEvent } from "../../services/telemetry";
 import { Post } from "../../../types";
 
 interface PostState {
@@ -42,99 +43,129 @@ export const createPost = createAsyncThunk(
       return rejectWithValue(new Error("User not authenticated"));
     }
 
-    try {
-      const postId = uuid();
-      let media: string[] = [];
-      let posterUrl: string | null = null;
-      let muxUploadId: string | null = null;
+    const postId = uuid();
+    const createdAt = new Date().toISOString();
 
+    try {
       if (mediaType === "image") {
+        let media: string[] = [];
+        let posterUrl: string | null = null;
         const imageDownloadUrl = await saveMediaToStorage(
           video,
           `post/${user.id}/${postId}/image.jpg`,
         );
         posterUrl = imageDownloadUrl;
         media = [imageDownloadUrl, imageDownloadUrl];
-      } else {
-        let thumbnailUri = thumbnail;
-        if (!thumbnailUri) {
-          try {
-            const { uri } = await VideoThumbnails.getThumbnailAsync(video, {
-              time: 1000,
-            });
-            thumbnailUri = uri;
-          } catch (error) {
-            console.warn("Thumbnail generation failed:", error);
-          }
-        }
-
-        if (thumbnailUri) {
-          posterUrl = await saveMediaToStorage(
-            thumbnailUri,
-            `postThumbs/${user.id}/${postId}.jpg`,
-          );
-        }
-
-        const { data: muxData, error: muxError } =
-          await supabase.functions.invoke("mux-create-upload", {
-            body: { postId },
-          });
-
-        if (muxError) {
-          throw muxError;
-        }
-
-        const uploadUrl = muxData?.uploadUrl as string | undefined;
-        const uploadId = muxData?.uploadId as string | undefined;
-
-        if (!uploadUrl || !uploadId) {
-          throw new Error("Mux upload URL not available");
-        }
-
-        const uploadResponse = await fetch(video);
-        const uploadBlob = await uploadResponse.blob();
-
-        const muxUploadResponse = await fetch(uploadUrl, {
-          method: "PUT",
-          body: uploadBlob,
-          headers: {
-            "Content-Type": uploadBlob.type || "application/octet-stream",
-          },
+        const { error: insertError } = await supabase.from("post").insert({
+          id: postId,
+          creator: user.id,
+          media,
+          description,
+          likesCount: 0,
+          commentsCount: 0,
+          creation: createdAt,
+          media_type: "image",
+          poster_url: posterUrl,
         });
 
-        if (!muxUploadResponse.ok) {
-          const errorText = await muxUploadResponse.text();
-          throw new Error(
-            `Mux upload failed: ${muxUploadResponse.status} ${errorText}`,
-          );
+        if (insertError) {
+          throw insertError;
         }
 
-        muxUploadId = uploadId;
-        media = [];
+        return;
+      }
+
+      let thumbnailUri = thumbnail;
+      if (!thumbnailUri) {
+        try {
+          const { uri } = await VideoThumbnails.getThumbnailAsync(video, {
+            time: 1000,
+          });
+          thumbnailUri = uri;
+        } catch (error) {
+          console.warn("Thumbnail generation failed:", error);
+        }
+      }
+
+      let posterUrl: string | null = null;
+      if (thumbnailUri) {
+        posterUrl = await saveMediaToStorage(
+          thumbnailUri,
+          `postThumbs/${user.id}/${postId}.jpg`,
+        );
       }
 
       const { error: insertError } = await supabase.from("post").insert({
         id: postId,
         creator: user.id,
-        media,
+        media: [],
         description,
         likesCount: 0,
         commentsCount: 0,
-        creation: new Date().toISOString(),
-        media_type: mediaType,
+        creation: createdAt,
+        media_type: "video",
         poster_url: posterUrl,
-        ...(muxUploadId ? { mux_upload_id: muxUploadId } : {}),
       });
 
       if (insertError) {
         throw insertError;
       }
+
+      void logEvent("mux_upload_start", { postId });
+
+      const { data: muxData, error: muxError } =
+        await supabase.functions.invoke("mux-create-upload", {
+          body: { postId },
+        });
+
+      if (muxError) {
+        throw muxError;
+      }
+
+      const uploadUrl = muxData?.uploadUrl as string | undefined;
+      const uploadId = muxData?.uploadId as string | undefined;
+
+      if (!uploadUrl || !uploadId) {
+        throw new Error("Mux upload URL not available");
+      }
+
+      const { error: updateError } = await supabase
+        .from("post")
+        .update({ mux_upload_id: uploadId })
+        .eq("id", postId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      const uploadResponse = await fetch(video);
+      const uploadBlob = await uploadResponse.blob();
+
+      const muxUploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        body: uploadBlob,
+        headers: {
+          "Content-Type": uploadBlob.type || "application/octet-stream",
+        },
+      });
+
+      if (!muxUploadResponse.ok) {
+        const errorText = await muxUploadResponse.text();
+        throw new Error(
+          `Mux upload failed: ${muxUploadResponse.status} ${errorText}`,
+        );
+      }
+
+      void logEvent("mux_upload_complete", { postId, uploadId });
     } catch (error) {
       console.error("Error creating post: ", error);
       const message =
         error instanceof Error
           ? error.message
           : (error as any)?.message ?? String(error);
+      if (mediaType === "video") {
+        void logEvent("mux_upload_failed", { postId, error: message });
+      }
       return rejectWithValue(message);
     }
   },
