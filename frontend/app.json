@@ -20,7 +20,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.archie.crawford.tayp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Tayp needs camera access to capture photos and videos.",
+        "NSMicrophoneUsageDescription": "Tayp needs microphone access to record audio for videos.",
+        "NSPhotoLibraryUsageDescription": "Tayp needs access to your photo library to upload photos and videos.",
+        "NSPhotoLibraryAddUsageDescription": "Tayp needs permission to save media to your library."
       }
     },
     "android": {
@@ -28,7 +32,14 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.archie.crawford.tayp"
+      "package": "com.archie.crawford.tayp",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { Alert, View, Text, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import styles from "./styles";
 import NavBarGeneral from "../../../components/general/navbar";
@@ -18,9 +18,18 @@ export default function EditProfileScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const chooseImage = async () => {
+    const pickerStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const granted = pickerStatus.granted || pickerStatus.status === "granted";
+    if (!granted) {
+      Alert.alert(
+        "Photos permission required",
+        "Enable Photos access in Settings to select a profile photo.",
+      );
+      return;
+    }
     let result = await ImagePicker.launchImageLibraryAsync({
       // MediaTypeOptions is deprecated; use MediaType array
-      mediaTypes: [ImagePicker.MediaType.Image],
+      mediaTypes: [ImagePicker.MediaType.Images],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,

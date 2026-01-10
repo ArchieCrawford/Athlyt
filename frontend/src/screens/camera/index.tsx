@@ -124,23 +124,40 @@ export default function CameraScreen() {
       }),
     [insets.bottom, insets.top, theme],
   );
+  const refreshGalleryItems = async () => {
+    const galleryStatus = await MediaLibrary.requestPermissionsAsync();
+    const granted = galleryStatus.granted || galleryStatus.status === "granted";
+    setHasGalleryPermissions(granted);
+
+    if (granted) {
+      const userGalleryMedia = await MediaLibrary.getAssetsAsync({
+        sortBy: ["creationTime"],
+        mediaType: [MediaLibrary.MediaType.video, MediaLibrary.MediaType.photo],
+      });
+      setGalleryItems(userGalleryMedia.assets);
+    } else {
+      setGalleryItems([]);
+    }
+  };
+
+  const ensurePickerPermissions = async () => {
+    const pickerStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const granted = pickerStatus.granted || pickerStatus.status === "granted";
+    if (!granted) {
+      Alert.alert(
+        "Photos permission required",
+        "Enable Photos access in Settings to select media.",
+      );
+    }
+    return granted;
+  };
+
   useEffect(() => {
     (async () => {
       await requestCameraPermission();
       await requestMicrophonePermission();
-
-      const galleryStatus = await MediaLibrary.requestPermissionsAsync();
-      setHasGalleryPermissions(galleryStatus.status == "granted");
-
+      await refreshGalleryItems();
       await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (galleryStatus.status == "granted") {
-        const userGalleryMedia = await MediaLibrary.getAssetsAsync({
-          sortBy: ["creationTime"],
-          mediaType: [MediaLibrary.MediaType.video, MediaLibrary.MediaType.photo],
-        });
-        setGalleryItems(userGalleryMedia.assets);
-      }
     })();
   }, [requestCameraPermission, requestMicrophonePermission]);
 
@@ -197,17 +214,9 @@ export default function CameraScreen() {
   };
 
   const pickFromGallery = async () => {
-    if (!hasGalleryPermissions) {
-      const galleryStatus = await MediaLibrary.requestPermissionsAsync();
-      const granted = galleryStatus.status === "granted";
-      setHasGalleryPermissions(granted);
-      if (!granted) {
-        Alert.alert(
-          "Gallery access required",
-          "Gallery access is limited in Expo Go. Use a development build for full access.",
-        );
-        return;
-      }
+    const pickerGranted = await ensurePickerPermissions();
+    if (!pickerGranted) {
+      return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: [
@@ -259,28 +268,13 @@ export default function CameraScreen() {
             Gallery: {String(hasGalleryPermissions)}
           </AppText>
           <AppText variant="muted">
-            Gallery access can be limited in Expo Go. A development build is
-            required for full gallery support.
+            Photos permission is required to preview recent items. You can still
+            open the picker to select media.
           </AppText>
           <Button
             title="Recheck permissions"
             onPress={() => {
-              MediaLibrary.requestPermissionsAsync().then(
-                async (galleryStatus) => {
-                  setHasGalleryPermissions(galleryStatus.status == "granted");
-                  if (galleryStatus.status == "granted") {
-                    const userGalleryMedia =
-                      await MediaLibrary.getAssetsAsync({
-                        sortBy: ["creationTime"],
-                        mediaType: [
-                          MediaLibrary.MediaType.video,
-                          MediaLibrary.MediaType.photo,
-                        ],
-                      });
-                    setGalleryItems(userGalleryMedia.assets);
-                  }
-                },
-              );
+              refreshGalleryItems();
               ImagePicker.requestMediaLibraryPermissionsAsync();
               requestCameraPermission();
               requestMicrophonePermission();
@@ -310,8 +304,7 @@ export default function CameraScreen() {
             }}
           >
             <AppText variant="caption">
-              Gallery access is limited in Expo Go. Use a development build for
-              full access.
+              Photos permission is required to preview your gallery.
             </AppText>
           </View>
         ) : null}

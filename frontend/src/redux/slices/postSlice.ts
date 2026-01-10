@@ -89,7 +89,7 @@ export const createPost = createAsyncThunk(
         description,
         likesCount: 0,
         commentsCount: 0,
-        created_at: new Date().toISOString(),
+        creation: new Date().toISOString(),
         media_type: mediaType,
         poster_url: posterUrl,
       });
@@ -116,7 +116,7 @@ export const getPostsByUser = createAsyncThunk(
         .from("post")
         .select("*")
         .eq("creator", uid)
-        .order("created_at", { ascending: false });
+        .order("creation", { ascending: false });
 
       if (error) {
         throw error;

@@ -44,7 +44,7 @@ export const getFeed = async (): Promise<Post[]> => {
   const { data, error } = await supabase
     .from("post")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("creation", { ascending: false });
 
   if (error) {
     console.error("Failed to get feed: ", error);
@@ -72,7 +72,7 @@ export const queryPostsByDescription = async (query: string): Promise<Post[]> =>
     .from("post")
     .select("*")
     .ilike("description", `%${query}%`)
-    .order("created_at", { ascending: false })
+    .order("creation", { ascending: false })
     .limit(20);
 
   if (error) {
@@ -160,7 +160,7 @@ export const addComment = async (
       post_id: postId,
       creator,
       comment,
-      created_at: new Date().toISOString(),
+      creation: new Date().toISOString(),
     });
 
     if (error) throw error;
@@ -178,7 +178,7 @@ export const commentListener = (
       .from("post_comments")
       .select("*")
       .eq("post_id", postId)
-      .order("created_at", { ascending: false });
+      .order("creation", { ascending: false });
 
     if (error) {
       console.error("Failed to load comments", error);
@@ -246,7 +246,7 @@ export const getPostsByUserId = (
           .from("post")
           .select("*")
           .eq("creator", uid)
-          .order("created_at", { ascending: false });
+          .order("creation", { ascending: false });
 
       if (error) {
         reject(error);
