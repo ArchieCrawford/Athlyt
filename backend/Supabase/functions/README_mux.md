@@ -1,7 +1,7 @@
 # Mux Edge Functions (Supabase)
 
 Functions added:
-- `mux-create-upload`: returns a Mux direct-upload URL ({ uploadUrl, uploadId }).
+- `mux-create-upload`: returns a Mux direct-upload URL ({ uploadUrl, uploadId }). Accepts optional JSON body `{ postId }` to set passthrough for webhook linkage.
 - `mux-webhook`: handles Mux webhooks (stores mux_playback_id / mux_asset_id on `post`).
 
 Required secrets (set via `supabase secrets set` in the functions folder):

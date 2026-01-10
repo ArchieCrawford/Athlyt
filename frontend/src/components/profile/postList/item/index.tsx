@@ -16,8 +16,14 @@ export default function ProfilePostListItem({ item }: { item: Post | null }) {
       item?.mux_playback_id ||
       /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(firstMedia),
   );
+  const muxPosterUri = item?.mux_playback_id
+    ? `https://image.mux.com/${item.mux_playback_id}/thumbnail.jpg`
+    : undefined;
   const posterUri =
-    item?.poster_url ?? item?.media[1] ?? (!isVideo ? item?.media[0] : undefined);
+    item?.poster_url ??
+    muxPosterUri ??
+    item?.media[1] ??
+    (!isVideo ? item?.media[0] : undefined);
 
   return (
     item && (

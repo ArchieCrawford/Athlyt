@@ -20,11 +20,17 @@ export interface PostSingleHandles {
  */
 export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
   ({ item }, parentRef) => {
-    const hasVideo = Array.isArray(item.media) && item.media[0];
-    const poster = item.poster_url || item.media?.[1];
-    const source = (hasVideo
-      ? { uri: item.media[0] }
-      : { uri: "" }) as VideoSource;
+    const muxPlaybackId = item.mux_playback_id;
+    const muxStreamUrl = muxPlaybackId
+      ? `https://stream.mux.com/${muxPlaybackId}.m3u8`
+      : undefined;
+    const muxPosterUrl = muxPlaybackId
+      ? `https://image.mux.com/${muxPlaybackId}/thumbnail.jpg`
+      : undefined;
+    const videoUri = muxStreamUrl ?? item.media?.[0];
+    const hasVideo = Boolean(videoUri);
+    const poster = item.poster_url || muxPosterUrl || item.media?.[1];
+    const source = (hasVideo ? { uri: videoUri } : { uri: "" }) as VideoSource;
     const player = useVideoPlayer(source, (p) => {
       p.loop = true;
     });

@@ -172,14 +172,22 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
 
     const description = item.description || "";
     const rawMediaUri = item.media?.[0];
+    const muxPlaybackId = item.mux_playback_id;
+    const muxStreamUrl = muxPlaybackId
+      ? `https://stream.mux.com/${muxPlaybackId}.m3u8`
+      : undefined;
+    const muxPosterUrl = muxPlaybackId
+      ? `https://image.mux.com/${muxPlaybackId}/thumbnail.jpg`
+      : undefined;
     const inferredImage =
       typeof rawMediaUri === "string" &&
       /\.(png|jpe?g|webp|gif)$/i.test(rawMediaUri.split("?")[0]);
     const isImage =
       item.media_type === "image" || (!item.media_type && inferredImage);
-    const videoUri = isImage ? undefined : rawMediaUri;
+    const videoUri = isImage ? undefined : muxStreamUrl ?? rawMediaUri;
     const posterUri =
       item.poster_url ||
+      muxPosterUrl ||
       (isImage ? item.media?.[0] : item.media?.[1] || item.media?.[0]);
     const hasPlayableVideo =
       !isImage && typeof videoUri === "string" && videoUri.trim().length > 0;
@@ -191,7 +199,11 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
       item.sharesCount !== undefined ? `${item.sharesCount}` : "Share";
 
     const safeVideoSource = {
-      uri: hasPlayableVideo ? videoUri : FALLBACK_VIDEO_SOURCE,
+      uri: hasPlayableVideo
+        ? videoUri
+        : item.media_type === "video"
+          ? ""
+          : FALLBACK_VIDEO_SOURCE,
     } as VideoSource;
 
     const player = useVideoPlayer(

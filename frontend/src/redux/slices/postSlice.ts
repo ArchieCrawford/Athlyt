@@ -43,14 +43,15 @@ export const createPost = createAsyncThunk(
     }
 
     try {
-      const storagePostId = uuid();
+      const postId = uuid();
       let media: string[] = [];
       let posterUrl: string | null = null;
+      let muxUploadId: string | null = null;
 
       if (mediaType === "image") {
         const imageDownloadUrl = await saveMediaToStorage(
           video,
-          `post/${user.id}/${storagePostId}/image.jpg`,
+          `post/${user.id}/${postId}/image.jpg`,
         );
         posterUrl = imageDownloadUrl;
         media = [imageDownloadUrl, imageDownloadUrl];
@@ -67,23 +68,53 @@ export const createPost = createAsyncThunk(
           }
         }
 
-        const videoDownloadUrl = await saveMediaToStorage(
-          video,
-          `post/${user.id}/${storagePostId}/video.mp4`,
-        );
-
         if (thumbnailUri) {
           posterUrl = await saveMediaToStorage(
             thumbnailUri,
-            `postThumbs/${user.id}/${storagePostId}.jpg`,
+            `postThumbs/${user.id}/${postId}.jpg`,
           );
-          media = [videoDownloadUrl, posterUrl];
-        } else {
-          media = [videoDownloadUrl];
         }
+
+        const { data: muxData, error: muxError } =
+          await supabase.functions.invoke("mux-create-upload", {
+            body: { postId },
+          });
+
+        if (muxError) {
+          throw muxError;
+        }
+
+        const uploadUrl = muxData?.uploadUrl as string | undefined;
+        const uploadId = muxData?.uploadId as string | undefined;
+
+        if (!uploadUrl || !uploadId) {
+          throw new Error("Mux upload URL not available");
+        }
+
+        const uploadResponse = await fetch(video);
+        const uploadBlob = await uploadResponse.blob();
+
+        const muxUploadResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          body: uploadBlob,
+          headers: {
+            "Content-Type": uploadBlob.type || "application/octet-stream",
+          },
+        });
+
+        if (!muxUploadResponse.ok) {
+          const errorText = await muxUploadResponse.text();
+          throw new Error(
+            `Mux upload failed: ${muxUploadResponse.status} ${errorText}`,
+          );
+        }
+
+        muxUploadId = uploadId;
+        media = [];
       }
 
       const { error: insertError } = await supabase.from("post").insert({
+        id: postId,
         creator: user.id,
         media,
         description,
@@ -92,6 +123,7 @@ export const createPost = createAsyncThunk(
         creation: new Date().toISOString(),
         media_type: mediaType,
         poster_url: posterUrl,
+        ...(muxUploadId ? { mux_upload_id: muxUploadId } : {}),
       });
 
       if (insertError) {

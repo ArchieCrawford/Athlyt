@@ -10,10 +10,21 @@ if (!muxTokenId || !muxTokenSecret) {
   console.error("Missing Mux credentials; set MUX_TOKEN_ID and MUX_TOKEN_SECRET");
 }
 
-serve(async (_req) => {
+serve(async (req) => {
   if (!muxTokenId || !muxTokenSecret) {
     return new Response("Server misconfigured", { status: 500 });
   }
+
+  let payload: { postId?: string } | null = null;
+  try {
+    payload = await req.json();
+  } catch {
+    payload = null;
+  }
+
+  const passthrough = payload?.postId
+    ? JSON.stringify({ post_id: payload.postId })
+    : undefined;
 
   const res = await fetch(`${muxBase}/uploads`, {
     method: "POST",
@@ -26,6 +37,7 @@ serve(async (_req) => {
       new_asset_settings: {
         playback_policy: ["public"],
       },
+      ...(passthrough ? { passthrough } : {}),
     }),
   });
 
