@@ -1,5 +1,5 @@
 import React from "react";
-import { Alert, View, Text, TouchableOpacity, Image } from "react-native";
+import { Alert, Linking, View, Text, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import styles from "./styles";
 import NavBarGeneral from "../../../components/general/navbar";
@@ -24,6 +24,19 @@ export default function EditProfileScreen() {
       Alert.alert(
         "Photos permission required",
         "Enable Photos access in Settings to select a profile photo.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Open Settings",
+            onPress: () =>
+              Linking.openSettings().catch(() => {
+                Alert.alert(
+                  "Unable to open settings",
+                  "Open system settings manually.",
+                );
+              }),
+          },
+        ],
       );
       return;
     }

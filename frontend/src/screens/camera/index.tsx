@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, View, StyleSheet, Image, Pressable } from "react-native";
+import { Alert, Linking, View, StyleSheet, Image, Pressable } from "react-native";
 import {
   CameraType,
   CameraView,
@@ -38,6 +38,10 @@ export default function CameraScreen() {
   const hasAudioPermissions = microphonePermission?.status === "granted";
   const hasRequiredPermissions = hasCameraPermissions && hasAudioPermissions;
   const [hasGalleryPermissions, setHasGalleryPermissions] = useState(false);
+  const [galleryAccess, setGalleryAccess] = useState<
+    "none" | "limited" | "all"
+  >("none");
+  const [galleryNoticeDismissed, setGalleryNoticeDismissed] = useState(false);
 
   const [galleryItems, setGalleryItems] = useState<MediaLibrary.Asset[]>([]);
 
@@ -121,13 +125,29 @@ export default function CameraScreen() {
           width: 52,
           height: 52,
         },
+        galleryButtonPlaceholder: {
+          width: "100%",
+          height: "100%",
+          alignItems: "center",
+          justifyContent: "center",
+        },
       }),
     [insets.bottom, insets.top, theme],
   );
-  const refreshGalleryItems = async () => {
-    const galleryStatus = await MediaLibrary.requestPermissionsAsync();
+  const syncGalleryItems = async (request: boolean) => {
+    const galleryStatus = request
+      ? await MediaLibrary.requestPermissionsAsync()
+      : await MediaLibrary.getPermissionsAsync();
     const granted = galleryStatus.granted || galleryStatus.status === "granted";
+    const accessPrivileges = (galleryStatus as { accessPrivileges?: string })
+      .accessPrivileges;
+    const access =
+      !granted ? "none" : accessPrivileges === "limited" ? "limited" : "all";
     setHasGalleryPermissions(granted);
+    setGalleryAccess(access);
+    if (request && galleryStatus.status !== "undetermined") {
+      setGalleryNoticeDismissed(true);
+    }
 
     if (granted) {
       const userGalleryMedia = await MediaLibrary.getAssetsAsync({
@@ -140,6 +160,32 @@ export default function CameraScreen() {
     }
   };
 
+  const openPhotoSettings = () => {
+    setGalleryNoticeDismissed(true);
+    Linking.openSettings().catch(() => {
+      Alert.alert("Unable to open settings", "Open system settings manually.");
+    });
+  };
+
+  const openGalleryAccessPicker = async () => {
+    setGalleryNoticeDismissed(true);
+    const presentPicker = (
+      MediaLibrary as { presentPermissionsPickerAsync?: () => Promise<void> }
+    ).presentPermissionsPickerAsync;
+
+    if (presentPicker) {
+      try {
+        await presentPicker();
+        await syncGalleryItems(false);
+        return;
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+    openPhotoSettings();
+  };
+
   const ensurePickerPermissions = async () => {
     const pickerStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
     const granted = pickerStatus.granted || pickerStatus.status === "granted";
@@ -147,7 +193,13 @@ export default function CameraScreen() {
       Alert.alert(
         "Photos permission required",
         "Enable Photos access in Settings to select media.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Open Settings", onPress: openPhotoSettings },
+        ],
       );
+    } else {
+      await syncGalleryItems(false);
     }
     return granted;
   };
@@ -156,10 +208,16 @@ export default function CameraScreen() {
     (async () => {
       await requestCameraPermission();
       await requestMicrophonePermission();
-      await refreshGalleryItems();
+      await syncGalleryItems(true);
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     })();
   }, [requestCameraPermission, requestMicrophonePermission]);
+
+  useEffect(() => {
+    if (isFocused) {
+      syncGalleryItems(false);
+    }
+  }, [isFocused]);
 
   useEffect(() => {
     if (!torchSupported && torchEnabled) {
@@ -257,6 +315,15 @@ export default function CameraScreen() {
     }
   };
 
+  const latestGalleryItem = galleryItems[galleryItems.length - 1];
+  const showGalleryPreview = Boolean(latestGalleryItem?.uri);
+  const showGalleryNotice =
+    !galleryNoticeDismissed &&
+    (!hasGalleryPermissions || galleryAccess === "limited");
+  const galleryNoticeText = !hasGalleryPermissions
+    ? "Photos permission is required to preview your gallery."
+    : "Photos access is limited. Add more photos for full gallery access.";
+
   if (!hasRequiredPermissions) {
     return (
       <Screen>
@@ -274,7 +341,7 @@ export default function CameraScreen() {
           <Button
             title="Recheck permissions"
             onPress={() => {
-              refreshGalleryItems();
+              syncGalleryItems(true);
               ImagePicker.requestMediaLibraryPermissionsAsync();
               requestCameraPermission();
               requestMicrophonePermission();
@@ -288,7 +355,7 @@ export default function CameraScreen() {
   return (
     <Screen fullBleed padding={false}>
       <View style={styles.container}>
-        {!hasGalleryPermissions ? (
+        {showGalleryNotice ? (
           <View
             style={{
               position: "absolute",
@@ -301,11 +368,19 @@ export default function CameraScreen() {
               backgroundColor: theme.colors.surface2,
               borderWidth: 1,
               borderColor: theme.colors.borderSubtle,
+              gap: theme.spacing.xs,
             }}
           >
-            <AppText variant="caption">
-              Photos permission is required to preview your gallery.
-            </AppText>
+            <AppText variant="caption">{galleryNoticeText}</AppText>
+            <Button
+              title={!hasGalleryPermissions ? "Open Settings" : "Manage Photos"}
+              variant="secondary"
+              fullWidth={false}
+              onPress={
+                !hasGalleryPermissions ? openPhotoSettings : openGalleryAccessPicker
+              }
+              style={{ alignSelf: "flex-start" }}
+            />
           </View>
         ) : null}
         {isFocused ? (
@@ -365,12 +440,20 @@ export default function CameraScreen() {
                 { opacity: pressed ? 0.85 : 1 },
               ]}
             >
-              {galleryItems[galleryItems.length - 1] ? (
+              {showGalleryPreview ? (
                 <Image
                   style={styles.galleryButtonImage}
-                  source={{ uri: galleryItems[galleryItems.length - 1].uri }}
+                  source={{ uri: latestGalleryItem?.uri }}
                 />
-              ) : null}
+              ) : (
+                <View style={styles.galleryButtonPlaceholder}>
+                  <Feather
+                    name="image"
+                    size={22}
+                    color={theme.colors.textMuted}
+                  />
+                </View>
+              )}
             </Pressable>
           </View>
           <Pressable
