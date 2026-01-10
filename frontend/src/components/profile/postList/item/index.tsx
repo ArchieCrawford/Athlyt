@@ -1,16 +1,19 @@
-import { Image, Pressable } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import { Post } from "../../../../../types";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../../../navigation/main";
 import { useTheme } from "../../../../theme/useTheme";
+import { Feather } from "@expo/vector-icons";
+import AppText from "../../../ui/AppText";
 
 export default function ProfilePostListItem({ item }: { item: Post | null }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const theme = useTheme();
 
-  const firstMedia = item?.media[0] ?? "";
+  const media = Array.isArray(item?.media) ? item?.media : [];
+  const firstMedia = media[0] ?? "";
   const isVideo = Boolean(
     item?.media_type === "video" ||
       item?.mux_playback_id ||
@@ -22,8 +25,8 @@ export default function ProfilePostListItem({ item }: { item: Post | null }) {
   const posterUri =
     item?.poster_url ??
     muxPosterUri ??
-    item?.media[1] ??
-    (!isVideo ? item?.media[0] : undefined);
+    media[1] ??
+    (!isVideo ? media[0] : undefined);
 
   return (
     item && (
@@ -43,14 +46,52 @@ export default function ProfilePostListItem({ item }: { item: Post | null }) {
           })
         }
       >
-        <Image
-          style={{
-            flex: 1,
-            borderRadius: theme.radius.sm,
-            backgroundColor: theme.colors.surface2,
-          }}
-          source={{ uri: posterUri }}
-        />
+        {posterUri ? (
+          <Image
+            style={{
+              flex: 1,
+              borderRadius: theme.radius.sm,
+              backgroundColor: theme.colors.surface2,
+            }}
+            source={{ uri: posterUri }}
+          />
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              borderRadius: theme.radius.sm,
+              backgroundColor: theme.colors.surface2,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Feather name="video" size={18} color={theme.colors.textMuted} />
+            <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+              Processing
+            </AppText>
+          </View>
+        )}
+        {isVideo ? (
+          <View
+            style={{
+              position: "absolute",
+              right: theme.spacing.xs,
+              bottom: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.xs,
+              paddingVertical: 2,
+              borderRadius: 10,
+              backgroundColor: "rgba(0,0,0,0.55)",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <Feather name="video" size={12} color="#FFFFFF" />
+            <AppText variant="caption" style={{ color: "#FFFFFF" }}>
+              Video
+            </AppText>
+          </View>
+        ) : null}
       </Pressable>
     )
   );
