@@ -34,6 +34,7 @@ import SavedScreen from "../../screens/profile/menu/SavedScreen";
 import ProfileQrScreen from "../../screens/profile/menu/ProfileQrScreen";
 import ActivityCenterScreen from "../../screens/profile/menu/ActivityCenterScreen";
 import HashtagResultsScreen from "../../screens/search/HashtagResults";
+import FindFriendsScreen from "../../screens/profile/findFriends";
 import useAuth from "../../hooks/useAuth";
 import { tokens } from "../../theme/tokens";
 import { logEvent } from "../../services/telemetry";
@@ -67,6 +68,7 @@ export type RootStackParamList = {
   ProfileQr: undefined;
   ActivityCenter: undefined;
   HashtagResults: { tag: string };
+  findFriends: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -213,6 +215,11 @@ function AuthedStack({
         name="HashtagResults"
         component={HashtagResultsScreen}
         options={{ title: "Hashtag" }}
+      />
+      <Stack.Screen
+        name="findFriends"
+        component={FindFriendsScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

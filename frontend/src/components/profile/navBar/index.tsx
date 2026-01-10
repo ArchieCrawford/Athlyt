@@ -1,9 +1,13 @@
-import { View, Pressable } from "react-native";
+import { Alert, Platform, Pressable, Share, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { RootState } from "../../../redux/store";
 import { useTheme } from "../../../theme/useTheme";
 import AppText from "../../ui/AppText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../../navigation/main";
+import { useSelector } from "react-redux";
 export default function ProfileNavBar({
   user,
   onMenuPress,
@@ -13,6 +17,31 @@ export default function ProfileNavBar({
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
+  );
+  const isSelf = currentUserId && user?.uid === currentUserId;
+
+  const handleShareProfile = async () => {
+    if (!user?.uid) {
+      Alert.alert("Share failed", "Profile unavailable.");
+      return;
+    }
+    const username =
+      user.username || user.displayName || user.email?.split("@")[0] || "user";
+    const deepLink = `athlyt://u/${user.uid}`;
+    const message = `Find me on Athlyt: ${username}\n${deepLink}`;
+
+    try {
+      await Share.share(
+        Platform.OS === "ios" ? { url: deepLink, message } : { message },
+      );
+    } catch (error) {
+      Alert.alert("Share failed", "Unable to open the share sheet.");
+    }
+  };
 
   return (
     user && (
@@ -28,9 +57,14 @@ export default function ProfileNavBar({
         }}
       >
         <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-          <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-            <Feather name="user-plus" size={20} color={theme.colors.text} />
-          </Pressable>
+          {isSelf ? (
+            <Pressable
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+              onPress={() => navigation.navigate("findFriends")}
+            >
+              <Feather name="user-plus" size={20} color={theme.colors.text} />
+            </Pressable>
+          ) : null}
           <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
             <Feather name="music" size={18} color={theme.colors.text} />
           </Pressable>
@@ -43,7 +77,10 @@ export default function ProfileNavBar({
           {user.displayName || "@user"}
         </AppText>
         <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-          <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+          <Pressable
+            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            onPress={handleShareProfile}
+          >
             <Feather name="share-2" size={20} color={theme.colors.text} />
           </Pressable>
           <Pressable

@@ -62,3 +62,36 @@ There are plenty of features to add, so here is what I would work on next. Feel 
 - Ability to reload profile/feed/chat screens
 - Ability to share posts through messaging
 - For You feed page vs Following feed page
+
+Local run (dev)
+
+From PowerShell:
+cd C:\Users\AceGr\Athlyt\frontend
+npm ci (or npm install)
+Start Metro:
+Dev Client (recommended with your setup): npx expo start --dev-client -c
+Expo Go: npx expo start -c
+Then:
+iOS Simulator: press i in the Expo terminal (mac only), or open the dev-client app on device.
+Android Emulator/device: press a (or scan QR / open the dev-client app).
+Make sure .env has:
+
+EXPO_PUBLIC_SUPABASE_URL
+EXPO_PUBLIC_SUPABASE_ANON_KEY
+EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET (usually media)
+TestFlight (build + upload)
+
+Build an App Store (production) IPA:
+cd C:\Users\AceGr\Athlyt\frontend
+Optional but recommended so it doesn’t hang on auth prompts: set an EAS token first (Expo dashboard → Access Tokens):
+$env:EAS_TOKEN="YOUR_TOKEN_HERE"
+Run the script:
+powershell -ExecutionPolicy Bypass -File [build.ps1](http://_vscodecontentref_/5) -Platform ios -Profile production -NonInteractive
+Submit the build to App Store Connect:
+cd C:\Users\AceGr\Athlyt\frontend
+npx eas submit -p ios --profile production
+Invite testers (this is the “TestFlight invitation”)
+In App Store Connect → Your app → TestFlight:
+Internal: add tester emails (must be on your App Store Connect team)
+External: create a tester group and enable a Public Link (share that link)
+If you tell me whether you’re using Dev Client or Expo Go day-to-day, I can tailor the exact “open on device” steps for your setup.

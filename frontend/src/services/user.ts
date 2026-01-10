@@ -144,7 +144,7 @@ export const queryUsersByName = (query: string): Promise<SearchUser[]> => {
       const { data, error } = await supabase
         .from("user")
         .select("*")
-        .or(`displayName.ilike.${query}%,email.ilike.${query}%`)
+        .or(`displayName.ilike.${query}%,email.ilike.${query}%,username.ilike.${query}%`)
         .limit(15);
 
       if (error) {
@@ -158,6 +158,33 @@ export const queryUsersByName = (query: string): Promise<SearchUser[]> => {
       reject(error);
     }
   });
+};
+
+export const getSuggestedUsers = async (
+  currentUserId: string,
+  excludeIds: string[] = [],
+  limit = 20,
+): Promise<SearchUser[]> => {
+  const ids = Array.from(new Set([currentUserId, ...excludeIds]));
+  const excludeList = ids.map((id) => `"${id}"`).join(",");
+
+  let query = supabase
+    .from("user")
+    .select("uid, email, displayName, username, photoURL, bio")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (excludeList.length > 0) {
+    query = query.not("uid", "in", `(${excludeList})`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).map((item) => ({ id: item.uid, ...item })) as SearchUser[];
 };
 
 export const getFollowingIds = async (): Promise<string[]> => {
