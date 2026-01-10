@@ -41,6 +41,7 @@ function Run([string]$cmd) {
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = "powershell"
   $psi.Arguments = "-NoProfile -Command $cmd"
+  $psi.WorkingDirectory = $Root
   $psi.RedirectStandardOutput = $true
   $psi.RedirectStandardError = $true
   $psi.UseShellExecute = $false

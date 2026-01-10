@@ -319,107 +319,108 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
             style={styles.media}
           >
             {!isImage ? (
-              <>
-                <Pressable
-                  onPress={onToggleMute}
-                  style={StyleSheet.absoluteFillObject}
+              <Pressable
+                onPress={onToggleMute}
+                style={StyleSheet.absoluteFillObject}
+              >
+                {hasPlayableVideo ? (
+                  <VideoView
+                    style={styles.video}
+                    contentFit="cover"
+                    nativeControls={false}
+                    player={player}
+                  />
+                ) : null}
+              </Pressable>
+            ) : null}
+
+            <LinearGradient
+              colors={theme.gradients.top}
+              style={styles.gradientTop}
+            />
+            <LinearGradient
+              colors={theme.gradients.bottom}
+              style={styles.gradientBottom}
+            />
+
+            <View style={styles.overlay}>
+              <View style={styles.caption}>
+                <CaptionBlock
+                  username={username}
+                  text={description}
+                  onHashtagPress={(tag) =>
+                    navigation.navigate("HashtagResults", { tag })
+                  }
+                  onMentionPress={handleMentionPress}
+                />
+                <View
+                  style={{
+                    marginTop: theme.spacing.sm,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: theme.spacing.sm,
+                  }}
                 >
-                  {hasPlayableVideo ? (
-                    <VideoView
-                      style={styles.video}
-                      contentFit="cover"
-                      nativeControls={false}
-                      player={player}
-                    />
-                  ) : null}
-                </Pressable>
-                <LinearGradient
-                  colors={theme.gradients.top}
-                  style={styles.gradientTop}
-                />
-                <LinearGradient
-                  colors={theme.gradients.bottom}
-                  style={styles.gradientBottom}
-                />
-                <View style={styles.overlay}>
-                  <View style={styles.caption}>
-                    <CaptionBlock
-                      username={username}
-                      text={description}
-                      onHashtagPress={(tag) =>
-                        navigation.navigate("HashtagResults", { tag })
-                      }
-                      onMentionPress={handleMentionPress}
-                    />
+                  <Feather
+                    name="music"
+                    size={14}
+                    color={theme.colors.textMuted}
+                  />
+                  <AppText
+                    variant="caption"
+                    style={{ color: theme.colors.textMuted }}
+                  >
+                    Original sound
+                  </AppText>
+                  {showShop ? (
                     <View
                       style={{
-                        marginTop: theme.spacing.sm,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: theme.spacing.sm,
+                        marginLeft: theme.spacing.sm,
+                        paddingHorizontal: theme.spacing.sm,
+                        paddingVertical: 2,
+                        borderRadius: theme.radius.sm,
+                        backgroundColor: theme.colors.surface2,
                       }}
                     >
-                      <Feather
-                        name="music"
-                        size={14}
-                        color={theme.colors.textMuted}
-                      />
-                      <AppText
-                        variant="caption"
-                        style={{ color: theme.colors.textMuted }}
-                      >
-                        Original sound
-                      </AppText>
-                      {showShop ? (
-                        <View
-                          style={{
-                            marginLeft: theme.spacing.sm,
-                            paddingHorizontal: theme.spacing.sm,
-                            paddingVertical: 2,
-                            borderRadius: theme.radius.sm,
-                            backgroundColor: theme.colors.surface2,
-                          }}
-                        >
-                          <AppText variant="caption">Shop</AppText>
-                        </View>
-                      ) : null}
+                      <AppText variant="caption">Shop</AppText>
                     </View>
-                  </View>
-                  <ActionRail
-                    style={styles.actionRail}
-                    avatarUri={avatarUri}
-                    showFollow={showFollow}
-                    liked={liked}
-                    likes={likesCount}
-                    comments={item.commentsCount}
-                    bookmarks={bookmarkCount}
-                    bookmarked={bookmarked}
-                    sharesLabel={sharesLabel}
-                    onLike={handleLike}
-                    onComment={handleComment}
-                    onShare={handleShare}
-                    onBookmark={handleBookmark}
-                    onAvatarPress={() =>
-                      navigation.navigate("profileOther", {
-                        initialUserId: item.creator,
-                      })
-                    }
-                  />
+                  ) : null}
                 </View>
-                <Animated.View
-                  pointerEvents="none"
-                  style={[
-                    styles.heart,
-                    {
-                      opacity: heartOpacity,
-                      transform: [{ scale: heartScale }],
-                    },
-                  ]}
-                >
-                  <Feather name="heart" size={72} color={theme.colors.accent} />
-                </Animated.View>
-              </>
-            ) : null}
+              </View>
+              <ActionRail
+                style={styles.actionRail}
+                avatarUri={avatarUri}
+                showFollow={showFollow}
+                liked={liked}
+                likes={likesCount}
+                comments={item.commentsCount}
+                bookmarks={bookmarkCount}
+                bookmarked={bookmarked}
+                sharesLabel={sharesLabel}
+                onLike={handleLike}
+                onComment={handleComment}
+                onShare={handleShare}
+                onBookmark={handleBookmark}
+                onAvatarPress={() =>
+                  navigation.navigate("profileOther", {
+                    initialUserId: item.creator,
+                  })
+                }
+              />
+            </View>
+
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.heart,
+                {
+                  opacity: heartOpacity,
+                  transform: [{ scale: heartScale }],
+                },
+              ]}
+            >
+              <Feather name="heart" size={72} color={theme.colors.accent} />
+            </Animated.View>
           </ImageBackground>
         ) : (
           <View style={styles.media} />

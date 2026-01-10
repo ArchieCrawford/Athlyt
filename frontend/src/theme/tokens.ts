@@ -42,8 +42,8 @@ export const tokens = {
     paddingBottom: 8,
   },
   gradients: {
-    top: ["rgba(10, 12, 16, 0.9)", "rgba(10, 12, 16, 0)"],
-    bottom: ["rgba(10, 12, 16, 0)", "rgba(10, 12, 16, 0.9)"],
+    top: ["rgba(10, 12, 16, 0.9)", "rgba(10, 12, 16, 0)"] as const,
+    bottom: ["rgba(10, 12, 16, 0)", "rgba(10, 12, 16, 0.9)"] as const,
   },
 };
 
