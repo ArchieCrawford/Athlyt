@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Edge Function: Mux webhook handler to persist playback_id/asset_id on posts
 // Expects env SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (aliases supported)
 // Expects env MUX_WEBHOOK_SECRET for signature verification
@@ -125,7 +126,7 @@ const updatePost = async (
   return { error: null };
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (!supabase) {
     return new Response("Server misconfigured", { status: 500 });
   }

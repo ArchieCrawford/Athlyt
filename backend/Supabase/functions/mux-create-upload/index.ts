@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Edge Function: create a direct-upload URL for Mux
 // Expects env MUX_TOKEN_ID, MUX_TOKEN_SECRET
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -10,7 +11,7 @@ if (!muxTokenId || !muxTokenSecret) {
   console.error("Missing Mux credentials; set MUX_TOKEN_ID and MUX_TOKEN_SECRET");
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (!muxTokenId || !muxTokenSecret) {
     return new Response("Server misconfigured", { status: 500 });
   }
