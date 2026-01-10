@@ -23,7 +23,7 @@ serve(async (req) => {
   }
 
   const passthrough = payload?.postId
-    ? JSON.stringify({ post_id: payload.postId })
+    ? JSON.stringify({ postId: payload.postId })
     : undefined;
 
   const res = await fetch(`${muxBase}/uploads`, {
@@ -36,8 +36,8 @@ serve(async (req) => {
       cors_origin: "*",
       new_asset_settings: {
         playback_policy: ["public"],
+        ...(passthrough ? { passthrough } : {}),
       },
-      ...(passthrough ? { passthrough } : {}),
     }),
   });
 

@@ -25,11 +25,23 @@ if (!muxWebhookSecret) {
 const supabase =
   supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 const encoder = new TextEncoder();
+const MAX_SIGNATURE_AGE_SECONDS = 300;
 
 const toHex = (buffer: ArrayBuffer) =>
   Array.from(new Uint8Array(buffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+
+const timingSafeEqual = (a: string, b: string) => {
+  const maxLength = Math.max(a.length, b.length);
+  let result = a.length ^ b.length;
+  for (let i = 0; i < maxLength; i += 1) {
+    const aCode = i < a.length ? a.charCodeAt(i) : 0;
+    const bCode = i < b.length ? b.charCodeAt(i) : 0;
+    result |= aCode ^ bCode;
+  }
+  return result === 0;
+};
 
 const parseMuxSignature = (header: string | null) => {
   if (!header) return null;
@@ -55,6 +67,16 @@ const verifyMuxSignature = async (
 ) => {
   const parsed = parseMuxSignature(header);
   if (!parsed) return false;
+  const timestamp = Number(parsed.timestamp);
+  if (!Number.isFinite(timestamp)) return false;
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - timestamp) > MAX_SIGNATURE_AGE_SECONDS) {
+    console.error("Mux webhook signature timestamp out of range", {
+      timestamp,
+      now,
+    });
+    return false;
+  }
   const payload = `${parsed.timestamp}.${body}`;
   const key = await crypto.subtle.importKey(
     "raw",
@@ -69,7 +91,9 @@ const verifyMuxSignature = async (
     encoder.encode(payload),
   );
   const expected = toHex(signature);
-  return parsed.signatures.some((sig) => sig === expected);
+  return parsed.signatures.some((sig) =>
+    timingSafeEqual(sig.toLowerCase(), expected),
+  );
 };
 
 const safeJsonParse = (value: unknown) => {
@@ -137,14 +161,27 @@ serve(async (req) => {
   }
 
   const passthroughObj =
-    safeJsonParse(data?.passthrough) ?? safeJsonParse(data?.upload?.passthrough);
-  const postId: string | undefined = passthroughObj?.post_id;
+    safeJsonParse(data?.passthrough) ??
+    safeJsonParse(data?.asset?.passthrough) ??
+    safeJsonParse(data?.upload?.passthrough);
+  const postId: string | undefined =
+    passthroughObj?.postId ?? passthroughObj?.post_id;
 
   if (type === "video.upload.asset_created") {
     const assetId: string | undefined = data?.asset_id ?? data?.asset?.id;
-    const uploadId: string | undefined = data?.id ?? data?.upload_id;
+    const uploadId: string | undefined =
+      data?.id ?? data?.upload_id ?? data?.upload?.id;
     if (!assetId) {
       return new Response("ok", { status: 200 });
+    }
+    if (!postId && !uploadId) {
+      console.error("Mux webhook mapping failed", {
+        type,
+        postId,
+        uploadId,
+        assetId,
+      });
+      return new Response("Missing post mapping", { status: 400 });
     }
 
     const updateObj = {
@@ -156,7 +193,13 @@ serve(async (req) => {
       console.error("Mux webhook asset_created update failed", error);
       return new Response("Update failed", { status: 500 });
     }
-    console.log("Mux webhook asset_created", { postId, uploadId, assetId });
+    console.log("Mux webhook update", {
+      type,
+      postId,
+      uploadId,
+      assetId,
+      playbackId: undefined,
+    });
     return new Response("ok", { status: 200 });
   }
 
@@ -166,6 +209,16 @@ serve(async (req) => {
     const uploadId: string | undefined = data?.upload_id ?? data?.upload?.id;
     if (!assetId || !playbackId) {
       return new Response("ok", { status: 200 });
+    }
+    if (!postId && !uploadId) {
+      console.error("Mux webhook mapping failed", {
+        type,
+        postId,
+        uploadId,
+        assetId,
+        playbackId,
+      });
+      return new Response("Missing post mapping", { status: 400 });
     }
 
     const updateObj = {
@@ -178,11 +231,12 @@ serve(async (req) => {
       console.error("Mux webhook asset_ready update failed", error);
       return new Response("Update failed", { status: 500 });
     }
-    console.log("Mux webhook asset_ready", {
+    console.log("Mux webhook update", {
       postId,
       uploadId,
       assetId,
       playbackId,
+      type,
     });
   }
 

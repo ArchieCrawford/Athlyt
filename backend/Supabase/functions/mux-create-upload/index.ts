@@ -1,17 +1,12 @@
-// Edge Function: create a direct-upload URL for Mux
-// Expects env MUX_TOKEN_ID, MUX_TOKEN_SECRET
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const muxTokenId = Deno.env.get("MUX_TOKEN_ID");
 const muxTokenSecret = Deno.env.get("MUX_TOKEN_SECRET");
 const muxBase = "https://api.mux.com/video/v1";
 
-if (!muxTokenId || !muxTokenSecret) {
-  console.error("Missing Mux credentials; set MUX_TOKEN_ID and MUX_TOKEN_SECRET");
-}
-
 serve(async (req) => {
   if (!muxTokenId || !muxTokenSecret) {
+    console.error("Missing Mux credentials; set MUX_TOKEN_ID and MUX_TOKEN_SECRET");
     return new Response("Server misconfigured", { status: 500 });
   }
 
@@ -22,9 +17,8 @@ serve(async (req) => {
     payload = null;
   }
 
-  const passthrough = payload?.postId
-    ? JSON.stringify({ post_id: payload.postId })
-    : undefined;
+  const postId = payload?.postId;
+  const passthrough = postId ? JSON.stringify({ postId }) : undefined;
 
   const res = await fetch(`${muxBase}/uploads`, {
     method: "POST",
@@ -36,8 +30,8 @@ serve(async (req) => {
       cors_origin: "*",
       new_asset_settings: {
         playback_policy: ["public"],
+        ...(passthrough ? { passthrough } : {}),
       },
-      ...(passthrough ? { passthrough } : {}),
     }),
   });
 
