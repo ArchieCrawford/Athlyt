@@ -1,34 +1,43 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Linking, View, StyleSheet, Image, Pressable } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, View } from "react-native";
 import {
   CameraType,
   CameraView,
   useCameraPermissions,
   useMicrophonePermissions,
 } from "expo-camera";
-import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import { useIsFocused } from "@react-navigation/core";
 import { Feather } from "@expo/vector-icons";
-
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { RootStackParamList } from "../../navigation/main";
 import Screen from "../../components/layout/Screen";
 import { useTheme } from "../../theme/useTheme";
 import AppText from "../../components/ui/AppText";
 import Button from "../../components/ui/Button";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ActionRail from "../../components/camera/ActionRail";
+import ModeSelector from "../../components/camera/ModeSelector";
 
-/**
- * Function that renders a component responsible showing
- * a view with the camera preview, recording videos, controling the camera and
- * letting the user pick a video from the gallery
- * @returns Functional Component
- */
+type CaptureMode = {
+  id: string;
+  label: string;
+  type: "photo" | "video" | "text";
+  maxDuration?: number;
+};
+
+const CAPTURE_MODES: CaptureMode[] = [
+  { id: "10m", label: "10m", type: "video", maxDuration: 600 },
+  { id: "60s", label: "60s", type: "video", maxDuration: 60 },
+  { id: "15s", label: "15s", type: "video", maxDuration: 15 },
+  { id: "photo", label: "Photo", type: "photo" },
+  { id: "text", label: "Text", type: "text" },
+];
+
 export default function CameraScreen() {
-  console.log("CameraScreen loaded: 2025-12-19 v2");
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -36,14 +45,13 @@ export default function CameraScreen() {
     useMicrophonePermissions();
   const hasCameraPermissions = cameraPermission?.status === "granted";
   const hasAudioPermissions = microphonePermission?.status === "granted";
-  const hasRequiredPermissions = hasCameraPermissions && hasAudioPermissions;
+  const hasRequiredPermissions = hasCameraPermissions;
   const [hasGalleryPermissions, setHasGalleryPermissions] = useState(false);
-  const [galleryAccess, setGalleryAccess] = useState<
-    "none" | "limited" | "all"
-  >("none");
-  const [galleryNoticeDismissed, setGalleryNoticeDismissed] = useState(false);
-
   const [galleryItems, setGalleryItems] = useState<MediaLibrary.Asset[]>([]);
+
+  const [selectedModeId, setSelectedModeId] = useState("photo");
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
 
   const cameraRef = useRef<React.ElementRef<typeof CameraView>>(null);
   const isRecordingRef = useRef(false);
@@ -57,6 +65,15 @@ export default function CameraScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
+  const selectedMode = useMemo(
+    () => CAPTURE_MODES.find((mode) => mode.id === selectedModeId),
+    [selectedModeId],
+  );
+
+  const isVideoMode = selectedMode?.type === "video";
+  const isPhotoMode = selectedMode?.type === "photo";
+  const isTextMode = selectedMode?.type === "text";
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -67,63 +84,82 @@ export default function CameraScreen() {
         camera: {
           ...StyleSheet.absoluteFillObject,
         },
-        sideBarContainer: {
+        topBar: {
+          position: "absolute",
+          top: insets.top + theme.spacing.sm,
+          left: 0,
+          right: 0,
+          alignItems: "center",
+        },
+        soundPill: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.spacing.xs,
+          paddingHorizontal: theme.spacing.md,
+          paddingVertical: theme.spacing.xs,
+          borderRadius: 999,
+          backgroundColor: "rgba(0,0,0,0.55)",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.2)",
+        },
+        soundText: {
+          color: theme.colors.text,
+          fontWeight: theme.type.fontWeights.bold,
+        },
+        railContainer: {
           position: "absolute",
           right: theme.spacing.md,
-          top: insets.top + theme.spacing.lg,
-          gap: theme.spacing.md,
+          top: insets.top + theme.spacing.xl,
         },
-        sideBarButton: {
-          alignItems: "center",
-          paddingVertical: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.sm,
-          borderRadius: theme.radius.md,
-          backgroundColor: theme.colors.surface2,
-          borderWidth: 1,
-          borderColor: theme.colors.borderSubtle,
-        },
-        iconText: {
-          color: theme.colors.textMuted,
-          fontSize: theme.type.fontSizes.caption,
-          marginTop: theme.spacing.xs,
-        },
-        bottomBarContainer: {
+        bottomSection: {
           position: "absolute",
           left: 0,
           right: 0,
-          bottom: insets.bottom + theme.spacing.lg,
+          bottom: insets.bottom + theme.spacing.md,
+          gap: theme.spacing.md,
+        },
+        bottomBarContainer: {
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: theme.spacing.lg,
         },
         recordButton: {
-          height: 76,
-          width: 76,
-          borderRadius: 38,
+          height: 84,
+          width: 84,
+          borderRadius: 42,
           backgroundColor: theme.colors.surface2,
-          borderWidth: 2,
+          borderWidth: 3,
           borderColor: theme.colors.accent,
           alignItems: "center",
           justifyContent: "center",
         },
+        recordButtonRecording: {
+          borderColor: theme.colors.danger,
+        },
         recordButtonInner: {
-          height: 56,
-          width: 56,
-          borderRadius: 28,
+          height: 60,
+          width: 60,
+          borderRadius: 30,
           backgroundColor: theme.colors.accent,
+        },
+        recordButtonInnerRecording: {
+          backgroundColor: theme.colors.danger,
+          borderRadius: 12,
+          width: 46,
+          height: 46,
         },
         galleryButton: {
           borderRadius: theme.radius.md,
           overflow: "hidden",
-          width: 52,
-          height: 52,
+          width: 56,
+          height: 56,
           borderWidth: 1,
           borderColor: theme.colors.borderSubtle,
           backgroundColor: theme.colors.surface2,
         },
         galleryButtonImage: {
-          width: 52,
-          height: 52,
+          width: 56,
+          height: 56,
         },
         galleryButtonPlaceholder: {
           width: "100%",
@@ -131,23 +167,21 @@ export default function CameraScreen() {
           alignItems: "center",
           justifyContent: "center",
         },
+        hintText: {
+          color: theme.colors.textMuted,
+          textAlign: "center",
+          marginTop: theme.spacing.xs,
+        },
       }),
     [insets.bottom, insets.top, theme],
   );
+
   const syncGalleryItems = async (request: boolean) => {
     const galleryStatus = request
       ? await MediaLibrary.requestPermissionsAsync()
       : await MediaLibrary.getPermissionsAsync();
     const granted = galleryStatus.granted || galleryStatus.status === "granted";
-    const accessPrivileges = (galleryStatus as { accessPrivileges?: string })
-      .accessPrivileges;
-    const access =
-      !granted ? "none" : accessPrivileges === "limited" ? "limited" : "all";
     setHasGalleryPermissions(granted);
-    setGalleryAccess(access);
-    if (request && galleryStatus.status !== "undetermined") {
-      setGalleryNoticeDismissed(true);
-    }
 
     if (granted) {
       const userGalleryMedia = await MediaLibrary.getAssetsAsync({
@@ -160,58 +194,12 @@ export default function CameraScreen() {
     }
   };
 
-  const openPhotoSettings = () => {
-    setGalleryNoticeDismissed(true);
-    Linking.openSettings().catch(() => {
-      Alert.alert("Unable to open settings", "Open system settings manually.");
-    });
-  };
-
-  const openGalleryAccessPicker = async () => {
-    setGalleryNoticeDismissed(true);
-    const presentPicker = (
-      MediaLibrary as { presentPermissionsPickerAsync?: () => Promise<void> }
-    ).presentPermissionsPickerAsync;
-
-    if (presentPicker) {
-      try {
-        await presentPicker();
-        await syncGalleryItems(false);
-        return;
-      } catch (error) {
-        console.warn(error);
-      }
-    }
-
-    openPhotoSettings();
-  };
-
-  const ensurePickerPermissions = async () => {
-    const pickerStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    const granted = pickerStatus.granted || pickerStatus.status === "granted";
-    if (!granted) {
-      Alert.alert(
-        "Photos permission required",
-        "Enable Photos access in Settings to select media.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Open Settings", onPress: openPhotoSettings },
-        ],
-      );
-    } else {
-      await syncGalleryItems(false);
-    }
-    return granted;
-  };
-
   useEffect(() => {
     (async () => {
       await requestCameraPermission();
-      await requestMicrophonePermission();
-      await syncGalleryItems(true);
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+      await syncGalleryItems(false);
     })();
-  }, [requestCameraPermission, requestMicrophonePermission]);
+  }, [requestCameraPermission]);
 
   useEffect(() => {
     if (isFocused) {
@@ -225,22 +213,40 @@ export default function CameraScreen() {
     }
   }, [torchEnabled, torchSupported]);
 
-  const recordVideo = async () => {
-    if (cameraRef.current && isCameraReady) {
-      try {
-        const data = await cameraRef.current.recordAsync({
-          maxDuration: 60,
-        });
-        const source = data.uri;
-        const sourceThumb = await generateThumbnail(source);
-        navigation.navigate("savePost", {
-          source,
-          sourceThumb,
-          mediaType: "video",
-        });
-      } catch (error) {
-        console.warn(error);
+  const recordVideo = async (maxDuration?: number) => {
+    if (!cameraRef.current || !isCameraReady || isRecordingRef.current) {
+      return;
+    }
+
+    if (!hasAudioPermissions) {
+      const updated = await requestMicrophonePermission();
+      if (updated.status !== "granted") {
+        Alert.alert(
+          "Microphone required",
+          "Enable microphone access to record video with sound.",
+        );
+        return;
       }
+    }
+
+    try {
+      isRecordingRef.current = true;
+      setIsRecording(true);
+      const data = await cameraRef.current.recordAsync({
+        maxDuration: maxDuration ?? 60,
+      });
+      const source = data.uri;
+      const sourceThumb = await generateThumbnail(source);
+      navigation.navigate("savePost", {
+        source,
+        sourceThumb,
+        mediaType: "video",
+      });
+    } catch (error) {
+      console.warn(error);
+    } finally {
+      isRecordingRef.current = false;
+      setIsRecording(false);
     }
   };
 
@@ -271,37 +277,8 @@ export default function CameraScreen() {
     }
   };
 
-  const pickFromGallery = async () => {
-    const pickerGranted = await ensurePickerPermissions();
-    if (!pickerGranted) {
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: [
-        ImagePicker.MediaType.Images,
-        ImagePicker.MediaType.Videos,
-      ],
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      const asset = result.assets[0];
-      if (asset.type === "video") {
-        const sourceThumb = await generateThumbnail(asset.uri);
-        navigation.navigate("savePost", {
-          source: asset.uri,
-          sourceThumb,
-          mediaType: "video",
-        });
-      } else {
-        navigation.navigate("savePost", {
-          source: asset.uri,
-          sourceThumb: asset.uri,
-          mediaType: "image",
-        });
-      }
-    }
+  const openGalleryPicker = async () => {
+    navigation.navigate("galleryPicker");
   };
 
   const generateThumbnail = async (source: string) => {
@@ -316,13 +293,53 @@ export default function CameraScreen() {
   };
 
   const latestGalleryItem = galleryItems[galleryItems.length - 1];
-  const showGalleryPreview = Boolean(latestGalleryItem?.uri);
-  const showGalleryNotice =
-    !galleryNoticeDismissed &&
-    (!hasGalleryPermissions || galleryAccess === "limited");
-  const galleryNoticeText = !hasGalleryPermissions
-    ? "Photos permission is required to preview your gallery."
-    : "Photos access is limited. Add more photos for full gallery access.";
+  const showGalleryPreview = hasGalleryPermissions && Boolean(latestGalleryItem?.uri);
+
+  const actionItems = [
+    {
+      id: "flip",
+      icon: "refresh-ccw",
+      label: "Flip",
+      onPress: () =>
+        setCameraType((prev) => (prev === "back" ? "front" : "back")),
+    },
+    {
+      id: "flash",
+      icon: "zap",
+      label: "Flash",
+      onPress: () => {
+        if (!torchSupported) return;
+        setTorchEnabled((prev) => !prev);
+      },
+      active: torchEnabled,
+      disabled: !torchSupported,
+    },
+    {
+      id: "timer",
+      icon: "clock",
+      label: "Timer",
+      onPress: () => Alert.alert("Timer", "Timer controls are coming soon."),
+    },
+    {
+      id: "effects",
+      icon: "aperture",
+      label: "Effects",
+      onPress: () => Alert.alert("Effects", "Effects are coming soon."),
+    },
+    {
+      id: "mic",
+      icon: audioEnabled ? "mic" : "mic-off",
+      label: "Mic",
+      onPress: () => setAudioEnabled((prev) => !prev),
+      active: audioEnabled,
+    },
+    {
+      id: "enhance",
+      icon: "star",
+      label: "Enhance",
+      onPress: () => Alert.alert("Enhance", "Enhance is coming soon."),
+    },
+  ];
 
   if (!hasRequiredPermissions) {
     return (
@@ -334,15 +351,10 @@ export default function CameraScreen() {
             Audio: {String(hasAudioPermissions)}{" "}
             Gallery: {String(hasGalleryPermissions)}
           </AppText>
-          <AppText variant="muted">
-            Photos permission is required to preview recent items. You can still
-            open the picker to select media.
-          </AppText>
           <Button
             title="Recheck permissions"
             onPress={() => {
               syncGalleryItems(true);
-              ImagePicker.requestMediaLibraryPermissionsAsync();
               requestCameraPermission();
               requestMicrophonePermission();
             }}
@@ -355,136 +367,113 @@ export default function CameraScreen() {
   return (
     <Screen fullBleed padding={false}>
       <View style={styles.container}>
-        {showGalleryNotice ? (
-          <View
-            style={{
-              position: "absolute",
-              top: insets.top + theme.spacing.sm,
-              left: theme.spacing.md,
-              right: theme.spacing.md,
-              zIndex: 10,
-              padding: theme.spacing.sm,
-              borderRadius: theme.radius.md,
-              backgroundColor: theme.colors.surface2,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
-              gap: theme.spacing.xs,
-            }}
-          >
-            <AppText variant="caption">{galleryNoticeText}</AppText>
-            <Button
-              title={!hasGalleryPermissions ? "Open Settings" : "Manage Photos"}
-              variant="secondary"
-              fullWidth={false}
-              onPress={
-                !hasGalleryPermissions ? openPhotoSettings : openGalleryAccessPicker
-              }
-              style={{ alignSelf: "flex-start" }}
-            />
-          </View>
-        ) : null}
         {isFocused ? (
           <CameraView
             ref={cameraRef}
             style={styles.camera}
             ratio="16:9"
-            mode="video"
+            mode={isVideoMode ? "video" : "picture"}
             facing={cameraType}
             enableTorch={torchSupported ? torchEnabled : false}
             onCameraReady={() => setIsCameraReady(true)}
           />
         ) : null}
 
-        <View style={styles.sideBarContainer}>
+        <View style={styles.topBar}>
           <Pressable
+            onPress={() => navigation.navigate("soundPicker")}
             style={({ pressed }) => [
-              styles.sideBarButton,
+              styles.soundPill,
               { opacity: pressed ? 0.85 : 1 },
             ]}
-            onPress={() =>
-              setCameraType((prev) => (prev === "back" ? "front" : "back"))
-            }
           >
-            <Feather name="refresh-ccw" size={22} color={theme.colors.text} />
-            <AppText variant="caption" style={styles.iconText}>
-              Flip
-            </AppText>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.sideBarButton,
-              { opacity: pressed ? 0.85 : torchSupported ? 1 : 0.5 },
-            ]}
-            onPress={() => {
-              if (!torchSupported) {
-                return;
-              }
-              setTorchEnabled((prev) => !prev);
-            }}
-            disabled={!torchSupported}
-          >
-            <Feather name="zap" size={22} color={theme.colors.text} />
-            <AppText variant="caption" style={styles.iconText}>
-              Flash
+            <Feather name="music" size={16} color={theme.colors.text} />
+            <AppText variant="caption" style={styles.soundText}>
+              Add sound
             </AppText>
           </Pressable>
         </View>
 
-        <View style={styles.bottomBarContainer}>
-          <View style={{ flex: 1 }}>
+        <View style={styles.railContainer}>
+          <ActionRail items={actionItems} />
+        </View>
+
+        <View style={styles.bottomSection}>
+          <ModeSelector
+            options={CAPTURE_MODES.map(({ id, label }) => ({ id, label }))}
+            value={selectedModeId}
+            onChange={setSelectedModeId}
+          />
+
+          <View style={styles.bottomBarContainer}>
+            <View style={{ flex: 1 }}>
+              <Pressable
+                onPress={openGalleryPicker}
+                style={({ pressed }) => [
+                  styles.galleryButton,
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                {showGalleryPreview ? (
+                  <Image
+                    style={styles.galleryButtonImage}
+                    source={{ uri: latestGalleryItem?.uri }}
+                  />
+                ) : (
+                  <View style={styles.galleryButtonPlaceholder}>
+                    <Feather
+                      name="image"
+                      size={22}
+                      color={theme.colors.textMuted}
+                    />
+                  </View>
+                )}
+              </Pressable>
+            </View>
+
             <Pressable
-              onPress={pickFromGallery}
+              disabled={!isCameraReady}
+              onPress={() => {
+                if (isPhotoMode) {
+                  takePhoto();
+                  return;
+                }
+                if (isTextMode) {
+                  Alert.alert("Text", "Text posts are coming soon.");
+                }
+              }}
+              onPressIn={() => {
+                if (isVideoMode) {
+                  recordVideo(selectedMode?.maxDuration);
+                }
+              }}
+              onPressOut={() => {
+                if (isVideoMode && isRecordingRef.current) {
+                  stopVideo();
+                }
+              }}
               style={({ pressed }) => [
-                styles.galleryButton,
-                { opacity: pressed ? 0.85 : 1 },
+                styles.recordButton,
+                isRecording && styles.recordButtonRecording,
+                { opacity: pressed ? 0.9 : 1 },
               ]}
             >
-              {showGalleryPreview ? (
-                <Image
-                  style={styles.galleryButtonImage}
-                  source={{ uri: latestGalleryItem?.uri }}
-                />
-              ) : (
-                <View style={styles.galleryButtonPlaceholder}>
-                  <Feather
-                    name="image"
-                    size={22}
-                    color={theme.colors.textMuted}
-                  />
-                </View>
-              )}
+              <View
+                style={[
+                  styles.recordButtonInner,
+                  isRecording && styles.recordButtonInnerRecording,
+                ]}
+              />
             </Pressable>
+
+            <View style={{ flex: 1, alignItems: "flex-end" }}>
+              {isVideoMode ? (
+                <AppText variant="caption" style={styles.hintText}>
+                  Hold to record
+                </AppText>
+              ) : null}
+            </View>
           </View>
-          <Pressable
-            disabled={!isCameraReady}
-            onPress={() => {
-              if (isRecordingRef.current) {
-                return;
-              }
-              takePhoto();
-            }}
-            onLongPress={() => {
-              if (isRecordingRef.current) {
-                return;
-              }
-              isRecordingRef.current = true;
-              recordVideo();
-            }}
-            onPressOut={() => {
-              if (isRecordingRef.current) {
-                stopVideo();
-              }
-              isRecordingRef.current = false;
-            }}
-            style={({ pressed }) => [
-              styles.recordButton,
-              { opacity: pressed ? 0.9 : 1 },
-            ]}
-          >
-            <View style={styles.recordButtonInner} />
-          </Pressable>
-          <View style={{ flex: 1 }} />
         </View>
       </View>
     </Screen>

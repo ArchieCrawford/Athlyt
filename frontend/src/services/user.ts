@@ -1,4 +1,4 @@
-import { supabase } from "../../supabaseClient";
+import { supabase, SUPABASE_STORAGE_BUCKET } from "../../supabaseClient";
 import { saveMediaToStorage } from "./utils";
 import { SearchUser, User } from "../../types";
 
@@ -29,12 +29,48 @@ export const saveUserProfileImage = (image: string) =>
       }
 
       await supabase.auth.updateUser({
-        data: { photoURL: downloadURL },
+        data: { photoURL: downloadURL, avatar_url: downloadURL },
       });
 
       resolve();
     } catch (error) {
       console.error("Failed to save user profile image: ", error);
+      reject(error);
+    }
+  });
+
+export const removeUserProfileImage = () =>
+  new Promise<void>(async (resolve, reject) => {
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        throw new Error("User is not authenticated");
+      }
+
+      const { error: updateError } = await supabase
+        .from("user")
+        .update({ photoURL: null })
+        .eq("uid", user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      await supabase.auth.updateUser({
+        data: { photoURL: null, avatar_url: null },
+      });
+
+      await supabase.storage
+        .from(SUPABASE_STORAGE_BUCKET)
+        .remove([`profileImage/${user.id}`]);
+
+      resolve();
+    } catch (error) {
+      console.error("Failed to remove user profile image: ", error);
       reject(error);
     }
   });

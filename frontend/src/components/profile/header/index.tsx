@@ -112,6 +112,11 @@ export default function ProfileHeader({ user }: { user: User }) {
         <AppText variant="subtitle">
           {user.displayName || `@user`}
         </AppText>
+        {user.username ? (
+          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+            @{user.username}
+          </AppText>
+        ) : null}
         {user.bio ? (
           <AppText variant="body" style={{ textAlign: "center" }}>
             {user.bio}

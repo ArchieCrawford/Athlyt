@@ -23,6 +23,9 @@ import {
 import SavePostScreen from "../../screens/savePost";
 import EditProfileScreen from "../../screens/profile/edit";
 import EditProfileFieldScreen from "../../screens/profile/edit/field";
+import AvatarCreatorScreen from "../../screens/profile/edit/AvatarCreatorScreen";
+import GalleryPickerScreen from "../../screens/camera/GalleryPickerScreen";
+import SoundPickerScreen from "../../screens/camera/SoundPickerScreen";
 import Modal from "../../components/modal";
 import FeedScreen from "../../features/feed/FeedScreen";
 import ProfileScreen from "../../screens/profile";
@@ -47,6 +50,9 @@ export type RootStackParamList = {
     sourceThumb?: string;
     mediaType?: "video" | "image";
   };
+  galleryPicker: undefined;
+  soundPicker: undefined;
+  avatarCreator: undefined;
   editProfile: undefined;
   editProfileField: {
     title: string;
@@ -140,6 +146,16 @@ function AuthedStack({
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="galleryPicker"
+        component={GalleryPickerScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="soundPicker"
+        component={SoundPickerScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name="userPosts"
         component={FeedScreen}
         options={({ navigation }) => ({
@@ -156,6 +172,11 @@ function AuthedStack({
       <Stack.Screen
         name="editProfile"
         component={EditProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="avatarCreator"
+        component={AvatarCreatorScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

@@ -25,6 +25,10 @@ export interface User {
   displayName: string | null;
   photoURL?: string;
   bio?: string | null;
+  username?: string | null;
+  pronoun?: string | null;
+  links?: string | null;
+  college?: string | null;
   followingCount: number;
   followersCount: number;
   likesCount: number;
