@@ -12,7 +12,7 @@ import PostSingle, { PostSingleHandles } from "../../components/general/post";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { getFeed, getPostsByUserId } from "../../services/posts";
 import { Post } from "../../../types";
-import { RouteProp } from "@react-navigation/native";
+import { RouteProp, useFocusEffect } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
 import { FeedStackParamList } from "../../navigation/feed/types";
@@ -51,6 +51,24 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const mediaRefs = useRef<Record<string, PostSingleHandles | null>>({});
+  const activePostIdRef = useRef<string | null>(null);
+
+  const stopAllMedia = useCallback(() => {
+    Object.values(mediaRefs.current).forEach((cell) => {
+      cell?.stop();
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (activePostIdRef.current) {
+        mediaRefs.current[activePostIdRef.current]?.play();
+      }
+      return () => {
+        stopAllMedia();
+      };
+    }, [stopAllMedia]),
+  );
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -88,6 +106,7 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
 
         if (cell) {
           if (element.isViewable) {
+            activePostIdRef.current = element.item.id;
             if (!profile && setCurrentUserProfileItemInView) {
               setCurrentUserProfileItemInView(element.item.creator);
             }

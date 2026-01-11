@@ -7,7 +7,7 @@ import {
   ViewToken,
   useWindowDimensions,
 } from "react-native";
-import { RouteProp, useNavigation } from "@react-navigation/native";
+import { RouteProp, useFocusEffect, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
@@ -63,6 +63,24 @@ export default function FeedScreen({
   const mediaRefs = useRef<Record<string, FeedItemHandles | null>>({});
   const seenIdsRef = useRef<Set<string>>(new Set());
   const [seenLoaded, setSeenLoaded] = useState(false);
+  const activePostIdRef = useRef<string | null>(null);
+
+  const stopAllMedia = useCallback(() => {
+    Object.values(mediaRefs.current).forEach((cell) => {
+      cell?.stop();
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (activePostIdRef.current) {
+        mediaRefs.current[activePostIdRef.current]?.play();
+      }
+      return () => {
+        stopAllMedia();
+      };
+    }, [stopAllMedia]),
+  );
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -121,6 +139,7 @@ export default function FeedScreen({
     ({ viewableItems }: { viewableItems: PostViewToken[] }) => {
       const activeItem = viewableItems.find((item) => item.isViewable);
       const activeId = activeItem?.item?.id ?? null;
+      activePostIdRef.current = activeId;
 
       Object.entries(mediaRefs.current).forEach(([id, cell]) => {
         if (!cell) {
