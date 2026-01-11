@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tayp",
     "slug": "frontend",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "scheme": "tayp",
     "icon": "./assets/icon.png",
@@ -19,6 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.archie.crawford.tayp",
+      "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Tayp needs camera access to capture photos and videos.",
