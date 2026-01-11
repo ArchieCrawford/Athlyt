@@ -12,6 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../../../navigation/main";
 import { Avatar } from "react-native-paper";
+import { getMediaPublicUrl } from "../../../../utils/mediaUrls";
 
 /**
  * Function that renders a component meant to be overlapped on
@@ -93,8 +94,13 @@ export default function PostSingleOverlay({
             })
           }
         >
-          {user.photoURL ? (
-            <Image style={styles.avatar} source={{ uri: user.photoURL }} />
+          {user.avatar_path || user.photoURL ? (
+            <Image
+              style={styles.avatar}
+              source={{
+                uri: getMediaPublicUrl(user.avatar_path ?? user.photoURL) ?? "",
+              }}
+            />
           ) : (
             <Avatar.Icon
               style={styles.defaultAvatar}

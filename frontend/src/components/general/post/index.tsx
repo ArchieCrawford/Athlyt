@@ -5,6 +5,7 @@ import styles from "./styles";
 import { Post } from "../../../../types";
 import { useUser } from "../../../hooks/useUser";
 import PostSingleOverlay from "./overlay";
+import { getMediaPublicUrl, getMuxThumbnail } from "../../../utils/mediaUrls";
 
 export interface PostSingleHandles {
   play: () => Promise<void>;
@@ -25,21 +26,19 @@ export const PostSingle = forwardRef<PostSingleHandles, { item: Post }>(
     const muxStreamUrl = muxPlaybackId
       ? `https://stream.mux.com/${muxPlaybackId}.m3u8`
       : undefined;
-    const muxPosterUrl = muxPlaybackId
-      ? `https://image.mux.com/${muxPlaybackId}/thumbnail.jpg`
-      : undefined;
-    const rawMediaUri = item.media?.[0];
+    const muxPosterUrl = getMuxThumbnail(muxPlaybackId);
+    const rawMediaPath = item.media_path ?? item.media?.[0];
+    const rawThumbPath = item.thumb_path ?? item.poster_url ?? item.media?.[1];
     const inferredImage =
-      typeof rawMediaUri === "string" &&
-      /\.(png|jpe?g|webp|gif)$/i.test(rawMediaUri.split("?")[0]);
+      typeof rawMediaPath === "string" &&
+      /\.(png|jpe?g|webp|gif)$/i.test(rawMediaPath.split("?")[0]);
     const isImage =
       item.media_type === "image" || (!item.media_type && inferredImage);
-    const videoUri = isImage ? undefined : muxStreamUrl ?? rawMediaUri;
+    const mediaUrl = getMediaPublicUrl(rawMediaPath);
+    const thumbUrl = getMediaPublicUrl(rawThumbPath);
+    const videoUri = isImage ? undefined : muxStreamUrl ?? undefined;
     const hasVideo = Boolean(videoUri);
-    const poster =
-      item.poster_url ||
-      muxPosterUrl ||
-      (isImage ? rawMediaUri : item.media?.[1] ?? rawMediaUri);
+    const poster = isImage ? (thumbUrl ?? mediaUrl) : muxPosterUrl ?? null;
     const source = ({ uri: hasVideo ? videoUri : "" } as VideoSource);
     const player = useVideoPlayer(source, (p) => {
       p.loop = true;

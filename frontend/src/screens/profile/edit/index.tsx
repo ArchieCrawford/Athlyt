@@ -15,6 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 
 import Screen from "../../../components/layout/Screen";
 import NavBarGeneral from "../../../components/general/navbar";
@@ -24,6 +25,9 @@ import { saveUserProfileImage, removeUserProfileImage } from "../../../services/
 import { RootState } from "../../../redux/store";
 import { useTheme } from "../../../theme/useTheme";
 import { RootStackParamList } from "../../../navigation/main";
+import { getMediaPublicUrl } from "../../../utils/mediaUrls";
+import { keys } from "../../../hooks/queryKeys";
+import { useAuthContext } from "../../../providers/AuthProvider";
 
 export default function EditProfileScreen() {
   const theme = useTheme();
@@ -32,6 +36,10 @@ export default function EditProfileScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
   const user = auth.currentUser;
+  const queryClient = useQueryClient();
+  const { refreshProfile } = useAuthContext();
+  const avatarPath = user?.avatar_path ?? user?.photoURL ?? null;
+  const avatarUrl = getMediaPublicUrl(avatarPath);
 
   const styles = useMemo(
     () =>
@@ -166,7 +174,13 @@ export default function EditProfileScreen() {
         .catch((error) => {
           Alert.alert("Update failed", error?.message || "Unable to save photo.");
         })
-        .finally(() => setIsUpdatingAvatar(false));
+        .finally(() => {
+          if (user?.uid) {
+            queryClient.invalidateQueries({ queryKey: keys.user(user.uid) });
+          }
+          refreshProfile();
+          setIsUpdatingAvatar(false);
+        });
     }
   };
 
@@ -197,7 +211,13 @@ export default function EditProfileScreen() {
         .catch((error) => {
           Alert.alert("Update failed", error?.message || "Unable to save photo.");
         })
-        .finally(() => setIsUpdatingAvatar(false));
+        .finally(() => {
+          if (user?.uid) {
+            queryClient.invalidateQueries({ queryKey: keys.user(user.uid) });
+          }
+          refreshProfile();
+          setIsUpdatingAvatar(false);
+        });
     }
   };
 
@@ -207,12 +227,18 @@ export default function EditProfileScreen() {
       .catch((error) => {
         Alert.alert("Remove failed", error?.message || "Unable to remove photo.");
       })
-      .finally(() => setIsUpdatingAvatar(false));
+      .finally(() => {
+        if (user?.uid) {
+          queryClient.invalidateQueries({ queryKey: keys.user(user.uid) });
+        }
+        refreshProfile();
+        setIsUpdatingAvatar(false);
+      });
   };
 
   const openAvatarActions = () => {
     const options = ["Take Photo", "Choose From Library"];
-    const removeIndex = user?.photoURL ? options.push("Remove") - 1 : -1;
+    const removeIndex = avatarPath ? options.push("Remove") - 1 : -1;
     const cancelButtonIndex = options.push("Cancel") - 1;
     const destructiveButtonIndex = removeIndex;
 
@@ -244,7 +270,7 @@ export default function EditProfileScreen() {
       { text: "Take Photo", onPress: handleCameraPick },
       { text: "Choose From Library", onPress: handleLibraryPick },
     ];
-    if (user?.photoURL) {
+    if (avatarPath) {
       actions.push({
         text: "Remove",
         style: "destructive" as const,
@@ -352,8 +378,12 @@ export default function EditProfileScreen() {
           style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
         >
           <View style={styles.avatarCircle}>
-            {user?.photoURL ? (
-              <Image style={styles.avatarImage} source={{ uri: user.photoURL }} />
+            {avatarUrl ? (
+              <Image
+                key={avatarUrl}
+                style={styles.avatarImage}
+                source={{ uri: avatarUrl }}
+              />
             ) : (
               <Feather name="user" size={44} color={theme.colors.textMuted} />
             )}

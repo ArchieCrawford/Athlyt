@@ -7,31 +7,23 @@ let commentChannel: RealtimeChannel | null = null;
 
 export const ensurePosterUrlForPost = async (post: Post): Promise<Post> => {
   const media = Array.isArray(post.media) ? [...post.media] : [];
-  const firstMedia = media[0] ?? "";
-  const isVideo = Boolean(
-    post.media_type === "video" ||
-      post.mux_playback_id ||
-      /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(firstMedia),
-  );
-  let posterUrl = post.poster_url ?? media[1];
+  const mediaPath = post.media_path ?? media[0];
+  const thumbPath = post.thumb_path ?? post.poster_url ?? media[1];
 
-  if (!posterUrl && post.media_type === "video" && post.mux_playback_id) {
-    posterUrl = `https://image.mux.com/${post.mux_playback_id}/thumbnail.jpg`;
+  if (!media[0] && mediaPath) {
+    media[0] = mediaPath;
+  }
+  if (!media[1] && thumbPath) {
+    media[1] = thumbPath;
   }
 
-  if (!posterUrl && !isVideo) {
-    posterUrl = media[0];
-  }
-
-  if (posterUrl && !media[1]) {
-    media[1] = posterUrl;
-  }
-
-  if (posterUrl && post.poster_url !== posterUrl && post.id) {
-    supabase.from("post").update({ poster_url: posterUrl }).eq("id", post.id);
-  }
-
-  return { ...post, poster_url: posterUrl, media };
+  return {
+    ...post,
+    media,
+    media_path: mediaPath ?? null,
+    thumb_path: thumbPath ?? null,
+    poster_url: post.poster_url ?? thumbPath ?? null,
+  };
 };
 
 /**

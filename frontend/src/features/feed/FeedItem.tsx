@@ -33,6 +33,7 @@ import AppText from "../../components/ui/AppText";
 import { queryUsersByName } from "../../services/user";
 import ActionRail from "./components/ActionRail";
 import CaptionBlock from "./components/CaptionBlock";
+import { getMediaPublicUrl, getMuxThumbnail } from "../../utils/mediaUrls";
 
 export interface FeedItemHandles {
   play: () => void;
@@ -171,28 +172,26 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
     };
 
     const description = item.description || "";
-    const rawMediaUri = item.media?.[0];
+    const rawMediaPath = item.media_path ?? item.media?.[0];
+    const rawThumbPath = item.thumb_path ?? item.poster_url ?? item.media?.[1];
     const muxPlaybackId = item.mux_playback_id;
     const muxStreamUrl = muxPlaybackId
       ? `https://stream.mux.com/${muxPlaybackId}.m3u8`
       : undefined;
-    const muxPosterUrl = muxPlaybackId
-      ? `https://image.mux.com/${muxPlaybackId}/thumbnail.jpg`
-      : undefined;
+    const muxPosterUrl = getMuxThumbnail(muxPlaybackId);
     const inferredImage =
-      typeof rawMediaUri === "string" &&
-      /\.(png|jpe?g|webp|gif)$/i.test(rawMediaUri.split("?")[0]);
+      typeof rawMediaPath === "string" &&
+      /\.(png|jpe?g|webp|gif)$/i.test(rawMediaPath.split("?")[0]);
     const isImage =
       item.media_type === "image" || (!item.media_type && inferredImage);
-    const videoUri = isImage ? undefined : muxStreamUrl ?? rawMediaUri;
-    const posterUri =
-      item.poster_url ||
-      muxPosterUrl ||
-      (isImage ? item.media?.[0] : item.media?.[1] || item.media?.[0]);
+    const mediaUrl = getMediaPublicUrl(rawMediaPath);
+    const thumbUrl = getMediaPublicUrl(rawThumbPath);
+    const videoUri = isImage ? undefined : muxStreamUrl ?? undefined;
+    const posterUri = isImage ? (thumbUrl ?? mediaUrl) : muxPosterUrl ?? null;
     const hasPlayableVideo =
       !isImage && typeof videoUri === "string" && videoUri.trim().length > 0;
     const username = user?.displayName || user?.email || item.creator;
-    const avatarUri = user?.photoURL;
+    const avatarUri = user?.avatar_path ?? user?.photoURL;
     const showFollow = currentUserId ? currentUserId !== item.creator : true;
     const showShop = /#shop/i.test(description);
     const sharesLabel =

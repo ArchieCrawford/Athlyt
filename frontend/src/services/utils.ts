@@ -16,9 +16,5 @@ export const saveMediaToStorage = async (mediaUri: string, path: string) => {
     throw error;
   }
 
-  const { data } = supabase.storage
-    .from(SUPABASE_STORAGE_BUCKET)
-    .getPublicUrl(path);
-
-  return data.publicUrl;
+  return path;
 };

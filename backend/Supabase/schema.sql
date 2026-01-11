@@ -7,6 +7,7 @@ create table if not exists public."user" (
   email text not null,
   "displayName" text,
   "photoURL" text,
+  avatar_path text,
   bio text,
   username text,
   pronoun text,
@@ -94,6 +95,8 @@ create table if not exists public.post (
   id uuid primary key default gen_random_uuid(),
   creator uuid references public."user"(uid) on delete cascade,
   media text[] not null,
+  media_path text,
+  thumb_path text,
   media_type text default 'image' check (media_type in ('image', 'video')),
   mux_playback_id text,
   mux_asset_id text,
@@ -278,3 +281,12 @@ create policy "Send message as member" on public.messages
   for insert with check (exists (select 1 from public.chats c where c.id = chat_id and auth.uid() = any(c.members)) and auth.uid() = creator);
 create policy "Delete own message" on public.messages
   for delete using (auth.uid() = creator);
+
+-- Storage policies (media bucket)
+alter table storage.objects enable row level security;
+
+drop policy if exists "Public read media bucket" on storage.objects;
+create policy "Public read media bucket"
+  on storage.objects
+  for select
+  using (bucket_id = 'media');

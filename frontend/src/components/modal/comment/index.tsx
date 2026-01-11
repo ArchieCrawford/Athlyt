@@ -19,6 +19,7 @@ import { generalStyles } from "../../../styles";
 import { RootState } from "../../../redux/store";
 import { Post, Comment } from "../../../../types";
 import { Avatar } from "react-native-paper";
+import { getMediaPublicUrl } from "../../../utils/mediaUrls";
 
 const CommentModal = ({
   post,
@@ -61,10 +62,15 @@ const CommentModal = ({
         keyExtractor={(item) => item.id}
       />
       <View style={styles.containerInput}>
-        {currentUser && currentUser.photoURL ? (
+        {currentUser && (currentUser.avatar_path || currentUser.photoURL) ? (
           <Image
             style={generalStyles.avatarSmall}
-            source={{ uri: currentUser.photoURL }}
+            source={{
+              uri:
+                getMediaPublicUrl(
+                  currentUser.avatar_path ?? currentUser.photoURL,
+                ) ?? "",
+            }}
           />
         ) : (
           <Avatar.Icon size={32} icon={"account"} />

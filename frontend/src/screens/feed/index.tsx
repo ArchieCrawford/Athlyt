@@ -1,15 +1,15 @@
 import {
   FlatList,
   View,
-  Dimensions,
   ViewToken,
   ActivityIndicator,
   Text,
   RefreshControl,
+  useWindowDimensions,
 } from "react-native";
 import styles from "./styles";
 import PostSingle, { PostSingleHandles } from "../../components/general/post";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState, useMemo } from "react";
 import { getFeed, getPostsByUserId } from "../../services/posts";
 import { Post } from "../../../types";
 import { RouteProp, useFocusEffect } from "@react-navigation/native";
@@ -17,7 +17,8 @@ import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
 import { FeedStackParamList } from "../../navigation/feed/types";
 import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/context";
-import useMaterialNavBarHeight from "../../hooks/useMaterialNavBarHeight";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 type FeedScreenRouteProp =
   | RouteProp<RootStackParamList, "userPosts">
@@ -28,13 +29,6 @@ interface PostViewToken extends ViewToken {
   item: Post;
 }
 
-/**
- * Component that renders a list of posts meant to be
- * used for the feed screen.
- *
- * On start make fetch for posts then use a flatList
- * to display/control the posts.
- */
 export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
   const { setCurrentUserProfileItemInView } = useContext(
     CurrentUserProfileItemInViewContext,
@@ -46,6 +40,14 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
   }>;
   const creator = params.creator ?? "";
   const profile = params.profile ?? false;
+
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+
+  const viewportHeight = useMemo(() => {
+    return Math.round(windowHeight - tabBarHeight - insets.bottom);
+  }, [windowHeight, tabBarHeight, insets.bottom]);
 
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,9 +75,8 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
   const fetchPosts = useCallback(async () => {
     try {
       setError(null);
-      const nextPosts = profile && creator
-        ? await getPostsByUserId(creator)
-        : await getFeed();
+      const nextPosts =
+        profile && creator ? await getPostsByUserId(creator) : await getFeed();
       setPosts(nextPosts);
     } catch (err) {
       console.error("Failed to load feed", err);
@@ -94,11 +95,6 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
     setRefreshing(false);
   }, [fetchPosts]);
 
-  /**
-   * Called any time a new post is shown when a user scrolls
-   * the FlatList, when this happens we should start playing
-   * the post that is viewable and stop all the others
-   */
   const onViewableItemsChanged = useRef(
     ({ changed }: { changed: PostViewToken[] }) => {
       changed.forEach((element) => {
@@ -119,23 +115,9 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
     },
   );
 
-  const feedItemHeight =
-    Dimensions.get("window").height - useMaterialNavBarHeight(profile);
-  /**
-   * renders the item shown in the FlatList
-   *
-   * @param {Object} item object of the post
-   * @param {Integer} index position of the post in the FlatList
-   * @returns
-   */
-  const renderItem = ({ item, index }: { item: Post; index: number }) => {
+  const renderItem = ({ item }: { item: Post; index: number }) => {
     return (
-      <View
-        style={{
-          height: feedItemHeight,
-          backgroundColor: "black",
-        }}
-      >
+      <View style={{ height: viewportHeight, backgroundColor: "black" }}>
         <PostSingle
           item={item}
           ref={(PostSingeRef) => {
@@ -173,10 +155,16 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
           maxToRenderPerBatch={2}
           removeClippedSubviews
           viewabilityConfig={{
-            itemVisiblePercentThreshold: 0,
+            itemVisiblePercentThreshold: 80,
           }}
           renderItem={renderItem}
           pagingEnabled
+          snapToInterval={viewportHeight}
+          getItemLayout={(_, index) => ({
+            length: viewportHeight,
+            offset: viewportHeight * index,
+            index,
+          })}
           keyExtractor={(item) => item.id}
           decelerationRate={"fast"}
           onViewableItemsChanged={onViewableItemsChanged.current}

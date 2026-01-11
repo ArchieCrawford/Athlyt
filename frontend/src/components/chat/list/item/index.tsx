@@ -64,7 +64,7 @@ const ChatListItem = ({ chat }: { chat: Chat }) => {
     >
       <Avatar
         size={56}
-        uri={userData?.photoURL}
+        uri={userData?.avatar_path ?? userData?.photoURL}
         label={userData?.displayName || "@user"}
       />
       <View style={{ flex: 1, gap: theme.spacing.xs }}>

@@ -51,7 +51,11 @@ export default function SearchUserItem({ item }: { item: SearchUser }) {
           @{item.email?.split("@")[0]}
         </AppText>
       </View>
-      <Avatar size={40} uri={item.photoURL} label={item.displayName || item.email} />
+      <Avatar
+        size={40}
+        uri={item.avatar_path ?? item.photoURL}
+        label={item.displayName || item.email}
+      />
     </Pressable>
   );
 }

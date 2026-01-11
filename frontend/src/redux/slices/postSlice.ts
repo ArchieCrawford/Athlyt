@@ -49,23 +49,23 @@ export const createPost = createAsyncThunk(
     try {
       if (mediaType === "image") {
         let media: string[] = [];
-        let posterUrl: string | null = null;
-        const imageDownloadUrl = await saveMediaToStorage(
-          video,
-          `post/${user.id}/${postId}/image.jpg`,
-        );
-        posterUrl = imageDownloadUrl;
-        media = [imageDownloadUrl, imageDownloadUrl];
+        let thumbPath: string | null = null;
+        const mediaPath = `posts/${user.id}/${postId}.jpg`;
+        await saveMediaToStorage(video, mediaPath);
+        thumbPath = mediaPath;
+        media = [mediaPath, thumbPath];
         const { error: insertError } = await supabase.from("post").insert({
           id: postId,
           creator: user.id,
           media,
+          media_path: mediaPath,
+          thumb_path: thumbPath,
           description,
           likesCount: 0,
           commentsCount: 0,
           creation: createdAt,
           media_type: "image",
-          poster_url: posterUrl,
+          poster_url: thumbPath,
         });
 
         if (insertError) {
@@ -87,24 +87,24 @@ export const createPost = createAsyncThunk(
         }
       }
 
-      let posterUrl: string | null = null;
+      let thumbPath: string | null = null;
       if (thumbnailUri) {
-        posterUrl = await saveMediaToStorage(
-          thumbnailUri,
-          `postThumbs/${user.id}/${postId}.jpg`,
-        );
+        thumbPath = `postThumbs/${user.id}/${postId}.jpg`;
+        await saveMediaToStorage(thumbnailUri, thumbPath);
       }
 
       const { error: insertError } = await supabase.from("post").insert({
         id: postId,
         creator: user.id,
         media: [],
+        media_path: null,
+        thumb_path: thumbPath,
         description,
         likesCount: 0,
         commentsCount: 0,
         creation: createdAt,
         media_type: "video",
-        poster_url: posterUrl,
+        poster_url: thumbPath,
       });
 
       if (insertError) {

@@ -6,6 +6,7 @@ import { RootStackParamList } from "../../../../navigation/main";
 import { useTheme } from "../../../../theme/useTheme";
 import { Feather } from "@expo/vector-icons";
 import AppText from "../../../ui/AppText";
+import { getMediaPublicUrl, getMuxThumbnail } from "../../../../utils/mediaUrls";
 
 export default function ProfilePostListItem({ item }: { item: Post | null }) {
   const navigation =
@@ -13,20 +14,17 @@ export default function ProfilePostListItem({ item }: { item: Post | null }) {
   const theme = useTheme();
 
   const media = Array.isArray(item?.media) ? item?.media : [];
-  const firstMedia = media[0] ?? "";
+  const mediaPath = item?.media_path ?? media[0] ?? "";
   const isVideo = Boolean(
     item?.media_type === "video" ||
       item?.mux_playback_id ||
-      /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(firstMedia),
+      /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(mediaPath),
   );
-  const muxPosterUri = item?.mux_playback_id
-    ? `https://image.mux.com/${item.mux_playback_id}/thumbnail.jpg`
-    : undefined;
-  const posterUri =
-    item?.poster_url ??
-    muxPosterUri ??
-    media[1] ??
-    (!isVideo ? media[0] : undefined);
+  const muxPosterUri = getMuxThumbnail(item?.mux_playback_id);
+  const thumbPath = item?.thumb_path ?? item?.poster_url ?? media[1];
+  const posterUri = isVideo
+    ? muxPosterUri
+    : getMediaPublicUrl(thumbPath ?? mediaPath);
 
   return (
     item && (

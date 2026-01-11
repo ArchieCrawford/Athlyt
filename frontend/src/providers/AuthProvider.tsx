@@ -71,7 +71,8 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       (authUser.user_metadata?.full_name as string | undefined) ||
       authUser.email ||
       "";
-    const photoURL = (authUser.user_metadata?.avatar_url as string | undefined) || null;
+    const avatarPath =
+      (authUser.user_metadata?.avatar_path as string | undefined) || null;
 
     const { data, error } = await supabase
       .from("user")
@@ -79,7 +80,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         uid: authUser.id,
         email: authUser.email,
         displayName: displayNameFallback,
-        photoURL,
+        avatar_path: avatarPath,
         followingCount: 0,
         followersCount: 0,
         likesCount: 0,

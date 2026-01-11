@@ -14,14 +14,12 @@ export const saveUserProfileImage = (image: string) =>
         throw new Error("User is not authenticated");
       }
 
-      const downloadURL = await saveMediaToStorage(
-        image,
-        `profileImage/${user.id}`,
-      );
+      const avatarPath = `avatars/${user.id}.jpg`;
+      await saveMediaToStorage(image, avatarPath);
 
       const { error: updateError } = await supabase
         .from("user")
-        .update({ photoURL: downloadURL })
+        .update({ avatar_path: avatarPath })
         .eq("uid", user.id);
 
       if (updateError) {
@@ -29,7 +27,7 @@ export const saveUserProfileImage = (image: string) =>
       }
 
       await supabase.auth.updateUser({
-        data: { photoURL: downloadURL, avatar_url: downloadURL },
+        data: { avatar_path: avatarPath },
       });
 
       resolve();
@@ -53,7 +51,7 @@ export const removeUserProfileImage = () =>
 
       const { error: updateError } = await supabase
         .from("user")
-        .update({ photoURL: null })
+        .update({ avatar_path: null })
         .eq("uid", user.id);
 
       if (updateError) {
@@ -61,12 +59,12 @@ export const removeUserProfileImage = () =>
       }
 
       await supabase.auth.updateUser({
-        data: { photoURL: null, avatar_url: null },
+        data: { avatar_path: null },
       });
 
       await supabase.storage
         .from(SUPABASE_STORAGE_BUCKET)
-        .remove([`profileImage/${user.id}`]);
+        .remove([`avatars/${user.id}.jpg`]);
 
       resolve();
     } catch (error) {
@@ -170,7 +168,7 @@ export const getSuggestedUsers = async (
 
   let query = supabase
     .from("user")
-    .select("uid, email, displayName, username, photoURL, bio")
+    .select("uid, email, displayName, username, avatar_path, photoURL, bio")
     .order("created_at", { ascending: false })
     .limit(limit);
 

@@ -7,6 +7,7 @@ import { Message } from "../../../../../types";
 import { Avatar } from "react-native-paper";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../../redux/store";
+import { getMediaPublicUrl } from "../../../../utils/mediaUrls";
 
 const ChatSingleItem = ({ item }: { item: Message }) => {
   const { data: userData, isLoading } = useUser(item.creator);
@@ -24,10 +25,12 @@ const ChatSingleItem = ({ item }: { item: Message }) => {
     <View
       style={isCurrentUser ? styles.containerCurrent : styles.containerOther}
     >
-      {userData && userData.photoURL ? (
+      {userData && (userData.avatar_path || userData.photoURL) ? (
         <Image
           style={generalStyles.avatarSmall}
-          source={{ uri: userData.photoURL }}
+          source={{
+            uri: getMediaPublicUrl(userData.avatar_path ?? userData.photoURL) ?? "",
+          }}
         />
       ) : (
         <Avatar.Icon size={32} icon={"account"} />

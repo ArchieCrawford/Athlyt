@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Image, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { useTheme } from "../../theme/useTheme";
 import AppText from "./AppText";
+import { getMediaPublicUrl } from "../../utils/mediaUrls";
 
 interface AvatarProps {
   size?: number;
@@ -52,7 +53,11 @@ export default function Avatar({
   return (
     <View style={[styles.ring, style]}>
       {uri ? (
-        <Image style={styles.image} source={{ uri }} />
+        <Image
+          key={getMediaPublicUrl(uri) ?? "avatar"}
+          style={styles.image}
+          source={{ uri: getMediaPublicUrl(uri) ?? uri }}
+        />
       ) : (
         <View style={styles.fallback}>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>

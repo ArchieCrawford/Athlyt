@@ -8,6 +8,7 @@ create table if not exists public."user" (
   email text not null,
   "displayName" text,
   "photoURL" text,
+  avatar_path text,
   bio text,
   username text,
   pronoun text,
@@ -95,6 +96,8 @@ create table if not exists public.post (
   id uuid primary key default gen_random_uuid(),
   creator uuid references public."user"(uid) on delete cascade,
   media text[] not null,
+  media_path text,
+  thumb_path text,
   media_type text default 'image' check (media_type in ('image', 'video')),
   mux_playback_id text,
   mux_asset_id text,
@@ -393,3 +396,12 @@ create index if not exists idx_following_follower on public.following(follower);
 create index if not exists idx_following_following on public.following(following);
 create index if not exists idx_messages_chat on public.messages(chat_id);
 create index if not exists idx_messages_creator on public.messages(creator);
+
+-- Storage policies (media bucket)
+alter table storage.objects enable row level security;
+
+drop policy if exists "Public read media bucket" on storage.objects;
+create policy "Public read media bucket"
+  on storage.objects
+  for select
+  using (bucket_id = 'media');

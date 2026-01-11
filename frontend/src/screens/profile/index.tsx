@@ -8,7 +8,7 @@ import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/conte
 import { useUser } from "../../hooks/useUser";
 import { getPostsByUserId } from "../../services/posts";
 import { Post } from "../../../types";
-import { RouteProp, useNavigation } from "@react-navigation/native";
+import { RouteProp, useIsFocused, useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
 import Screen from "../../components/layout/Screen";
@@ -33,6 +33,7 @@ export default function ProfileScreen({
   const { initialUserId } = route.params;
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isFocused = useIsFocused();
 
   const providerUserId = useContext(CurrentUserProfileItemInViewContext);
 
@@ -49,6 +50,31 @@ export default function ProfileScreen({
 
     getPostsByUserId(user?.uid).then((posts) => setUserPosts(posts));
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !isFocused) {
+      return;
+    }
+    getPostsByUserId(user.uid).then((posts) => setUserPosts(posts));
+  }, [isFocused, user]);
+
+  useEffect(() => {
+    if (!user || !isFocused) {
+      return;
+    }
+    const hasPendingVideo = userPosts.some(
+      (post) => post.media_type === "video" && !post.mux_playback_id,
+    );
+    if (!hasPendingVideo) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      getPostsByUserId(user.uid).then((posts) => setUserPosts(posts));
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [isFocused, user, userPosts]);
 
   if (!user) {
     return null;

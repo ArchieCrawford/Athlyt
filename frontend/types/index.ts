@@ -2,6 +2,8 @@ export interface Post {
   id: string;
   creator: string;
   media: string[];
+  media_path?: string | null;
+  thumb_path?: string | null;
   media_type?: "video" | "image";
   poster_url?: string | null;
   mux_playback_id?: string | null;
@@ -24,6 +26,7 @@ export interface User {
   email: string;
   displayName: string | null;
   photoURL?: string;
+  avatar_path?: string | null;
   bio?: string | null;
   username?: string | null;
   pronoun?: string | null;

@@ -64,6 +64,7 @@ export default function FeedScreen({
   const seenIdsRef = useRef<Set<string>>(new Set());
   const [seenLoaded, setSeenLoaded] = useState(false);
   const activePostIdRef = useRef<string | null>(null);
+  const [listHeight, setListHeight] = useState(height);
 
   const stopAllMedia = useCallback(() => {
     Object.values(mediaRefs.current).forEach((cell) => {
@@ -165,8 +166,16 @@ export default function FeedScreen({
     },
   );
 
-  const feedItemHeight = height;
   const showTabs = !profile;
+  const handleListLayout = useCallback(
+    (event: { nativeEvent: { layout: { height: number } } }) => {
+      const nextHeight = Math.round(event.nativeEvent.layout.height);
+      if (nextHeight > 0 && nextHeight !== listHeight) {
+        setListHeight(nextHeight);
+      }
+    },
+    [listHeight],
+  );
 
   const visiblePosts = useMemo(() => {
     if (!posts) {
@@ -218,80 +227,82 @@ export default function FeedScreen({
           onSearchPress={handleSearchPress}
         />
       ) : null}
-      {posts === null ? (
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: theme.colors.bg,
-          }}
-        >
-          <ActivityIndicator size="large" color={theme.colors.accent} />
-        </View>
-      ) : visiblePosts.length === 0 ? (
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            padding: theme.spacing.xl,
-            gap: theme.spacing.sm,
-            backgroundColor: theme.colors.bg,
-          }}
-        >
-          <AppText variant="subtitle">{emptyLabel}</AppText>
-          <AppText variant="muted" style={{ textAlign: "center" }}>
-            {error
-              ? "Check your connection and try again."
-              : profile
-              ? "This athlete has not posted yet."
-              : "Follow athletes and check back soon."}
-          </AppText>
-        </View>
-      ) : (
-        <FlatList
-          data={visiblePosts}
-          windowSize={4}
-          initialNumToRender={2}
-          maxToRenderPerBatch={2}
-          removeClippedSubviews
-          viewabilityConfig={{
-            itemVisiblePercentThreshold: 80,
-            minimumViewTime: 150,
-          }}
-          renderItem={({ item }) => (
-            <FeedItem
-              item={item}
-              height={feedItemHeight}
-              width={width}
-              muted={muted}
-              onToggleMute={() => setMuted((prev) => !prev)}
-              ref={(feedRef) => {
-                mediaRefs.current[item.id] = feedRef;
-              }}
-            />
-          )}
-          pagingEnabled
-          snapToAlignment="start"
-          keyExtractor={(item) => item.id}
-          decelerationRate="fast"
-          snapToInterval={feedItemHeight}
-          getItemLayout={(_, index) => ({
-            length: feedItemHeight,
-            offset: feedItemHeight * index,
-            index,
-          })}
-          onViewableItemsChanged={onViewableItemsChanged.current}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.colors.textMuted}
-            />
-          }
-        />
-      )}
+      <View style={{ flex: 1 }} onLayout={handleListLayout}>
+        {posts === null ? (
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: theme.colors.bg,
+            }}
+          >
+            <ActivityIndicator size="large" color={theme.colors.accent} />
+          </View>
+        ) : visiblePosts.length === 0 ? (
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              padding: theme.spacing.xl,
+              gap: theme.spacing.sm,
+              backgroundColor: theme.colors.bg,
+            }}
+          >
+            <AppText variant="subtitle">{emptyLabel}</AppText>
+            <AppText variant="muted" style={{ textAlign: "center" }}>
+              {error
+                ? "Check your connection and try again."
+                : profile
+                ? "This athlete has not posted yet."
+                : "Follow athletes and check back soon."}
+            </AppText>
+          </View>
+        ) : (
+          <FlatList
+            data={visiblePosts}
+            windowSize={4}
+            initialNumToRender={2}
+            maxToRenderPerBatch={2}
+            removeClippedSubviews
+            viewabilityConfig={{
+              itemVisiblePercentThreshold: 80,
+              minimumViewTime: 150,
+            }}
+            renderItem={({ item }) => (
+              <FeedItem
+                item={item}
+                height={listHeight}
+                width={width}
+                muted={muted}
+                onToggleMute={() => setMuted((prev) => !prev)}
+                ref={(feedRef) => {
+                  mediaRefs.current[item.id] = feedRef;
+                }}
+              />
+            )}
+            pagingEnabled
+            snapToAlignment="start"
+            keyExtractor={(item) => item.id}
+            decelerationRate="fast"
+            snapToInterval={listHeight}
+            getItemLayout={(_, index) => ({
+              length: listHeight,
+              offset: listHeight * index,
+              index,
+            })}
+            onViewableItemsChanged={onViewableItemsChanged.current}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.textMuted}
+              />
+            }
+          />
+        )}
+      </View>
     </Screen>
   );
 }

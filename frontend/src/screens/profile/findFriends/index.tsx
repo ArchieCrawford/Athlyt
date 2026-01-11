@@ -297,7 +297,11 @@ export default function FindFriendsScreen() {
           { opacity: pressed ? 0.9 : 1 },
         ]}
       >
-        <Avatar size={48} uri={item.photoURL} label={item.displayName || item.email} />
+        <Avatar
+          size={48}
+          uri={item.avatar_path ?? item.photoURL}
+          label={item.displayName || item.email}
+        />
         <View style={styles.userMeta}>
           <AppText variant="body">{item.displayName || item.email}</AppText>
           <AppText variant="caption" style={styles.username}>

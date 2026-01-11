@@ -105,7 +105,7 @@ export default function ProfileHeader({ user }: { user: User }) {
       >
         <Avatar
           size={88}
-          uri={user.photoURL}
+          uri={user.avatar_path ?? user.photoURL}
           label={user.displayName || `@user`}
           accentRing={currentUserId !== user.uid}
         />
