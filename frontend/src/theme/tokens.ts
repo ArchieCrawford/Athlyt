@@ -38,8 +38,8 @@ export const tokens = {
   },
   tabBar: {
     height: 70,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   gradients: {
     top: ["rgba(10, 12, 16, 0.9)", "rgba(10, 12, 16, 0)"] as const,

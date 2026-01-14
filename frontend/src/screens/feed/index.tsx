@@ -17,7 +17,6 @@ import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
 import { FeedStackParamList } from "../../navigation/feed/types";
 import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/context";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 type FeedScreenRouteProp =
@@ -42,12 +41,11 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
   const profile = params.profile ?? false;
 
   const { height: windowHeight } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
   const viewportHeight = useMemo(() => {
-    return Math.round(windowHeight - tabBarHeight - insets.bottom);
-  }, [windowHeight, tabBarHeight, insets.bottom]);
+    return Math.round(windowHeight - tabBarHeight);
+  }, [windowHeight, tabBarHeight]);
 
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);

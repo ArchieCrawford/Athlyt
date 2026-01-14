@@ -19,7 +19,7 @@ export const saveUserProfileImage = (image: string) =>
 
       const { error: updateError } = await supabase
         .from("user")
-        .update({ avatar_path: avatarPath })
+        .update({ avatar_path: avatarPath, photoURL: null })
         .eq("uid", user.id);
 
       if (updateError) {
@@ -51,7 +51,7 @@ export const removeUserProfileImage = () =>
 
       const { error: updateError } = await supabase
         .from("user")
-        .update({ avatar_path: null })
+        .update({ avatar_path: null, photoURL: null })
         .eq("uid", user.id);
 
       if (updateError) {

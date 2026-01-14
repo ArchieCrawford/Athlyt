@@ -20,6 +20,7 @@ export default function Avatar({
   style,
 }: AvatarProps) {
   const theme = useTheme();
+  const resolvedUri = uri ? getMediaPublicUrl(uri) : null;
 
   const styles = useMemo(
     () =>
@@ -54,9 +55,9 @@ export default function Avatar({
     <View style={[styles.ring, style]}>
       {uri ? (
         <Image
-          key={getMediaPublicUrl(uri) ?? "avatar"}
+          key={resolvedUri ?? "avatar"}
           style={styles.image}
-          source={{ uri: getMediaPublicUrl(uri) ?? uri }}
+          source={{ uri: resolvedUri ?? uri }}
         />
       ) : (
         <View style={styles.fallback}>

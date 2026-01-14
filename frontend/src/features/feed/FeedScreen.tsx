@@ -52,6 +52,7 @@ export default function FeedScreen({
   }>;
   const creator = params.creator ?? "";
   const profile = params.profile ?? false;
+  const safeAreaEdges = profile ? ["bottom"] : [];
 
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [rankedPosts, setRankedPosts] = useState<Post[] | null>(null);
@@ -219,7 +220,12 @@ export default function FeedScreen({
   };
 
   return (
-    <Screen fullBleed padding={false} style={{ backgroundColor: theme.colors.bg }}>
+    <Screen
+      fullBleed
+      padding={false}
+      safeAreaEdges={safeAreaEdges}
+      style={{ backgroundColor: theme.colors.bg }}
+    >
       {showTabs ? (
         <FeedHeaderTabs
           activeTab={activeTab}

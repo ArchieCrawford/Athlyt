@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { ScrollView, StyleProp, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { Edge } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/useTheme";
 
 interface ScreenProps {
@@ -10,6 +11,7 @@ interface ScreenProps {
   padding?: boolean;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  safeAreaEdges?: Edge[];
 }
 
 export default function Screen({
@@ -19,6 +21,7 @@ export default function Screen({
   padding = true,
   style,
   contentContainerStyle,
+  safeAreaEdges,
 }: ScreenProps) {
   const theme = useTheme();
   const paddingStyle = padding
@@ -27,10 +30,11 @@ export default function Screen({
         paddingVertical: theme.spacing.md,
       }
     : null;
+  const edges = safeAreaEdges ?? (fullBleed ? ["bottom"] : ["top", "bottom"]);
 
   return (
     <SafeAreaView
-      edges={fullBleed ? ["bottom"] : ["top", "bottom"]}
+      edges={edges}
       style={[{ flex: 1, backgroundColor: theme.colors.bg }, style]}
     >
       {scroll ? (

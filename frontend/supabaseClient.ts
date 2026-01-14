@@ -11,8 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const SUPABASE_STORAGE_BUCKET =
-  process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET || "media";
+export const SUPABASE_STORAGE_BUCKET = "media";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
