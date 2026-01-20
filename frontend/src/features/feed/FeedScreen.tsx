@@ -173,8 +173,6 @@ export default function FeedScreen({
     },
   );
 
-  const showTabs = !profile;
-
   const visiblePosts = useMemo(() => {
     if (!posts) {
       return [];
