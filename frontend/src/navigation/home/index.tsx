@@ -12,7 +12,7 @@ import { useTheme } from "../../theme/useTheme";
 import { StyleSheet } from "react-native";
 
 export type HomeStackParamList = {
-  feed: undefined;
+  feed: { tabBarHeight?: number };
   Discover: { query?: string } | undefined;
   Add: undefined;
   Inbox: undefined;
@@ -33,10 +33,10 @@ export default function HomeScreen() {
       shifting={false}
       activeColor={theme.colors.text}
       inactiveColor={theme.colors.textMuted}
+      safeAreaInsets={{ bottom: 0 }}
       barStyle={{
         backgroundColor: theme.colors.surface,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.borderSubtle,
+        borderTopWidth: 0,
         height: theme.tabBar.height,
         paddingBottom: theme.tabBar.paddingBottom,
         paddingTop: theme.tabBar.paddingTop,
@@ -51,6 +51,7 @@ export default function HomeScreen() {
       <Tab.Screen
         name="feed"
         component={FeedNavigation}
+        initialParams={{ tabBarHeight: theme.tabBar.height }}
         options={{
           tabBarIcon: ({ color }) => (
             <Feather name="home" size={24} color={color} />
@@ -93,6 +94,7 @@ export default function HomeScreen() {
           ),
         }}
         initialParams={{ initialUserId: currentUserId ?? "" }}
+        key={currentUserId ?? "guest"}
       />
     </Tab.Navigator>
   );

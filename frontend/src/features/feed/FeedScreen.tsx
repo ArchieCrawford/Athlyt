@@ -49,9 +49,11 @@ export default function FeedScreen({
   const params = (route?.params ?? {}) as Partial<{
     creator: string;
     profile: boolean;
+    tabBarHeight: number;
   }>;
   const creator = params.creator ?? "";
   const profile = params.profile ?? false;
+  const tabBarHeight = params.tabBarHeight ?? 0;
   const safeAreaEdges = profile ? ["bottom"] : [];
 
   const [posts, setPosts] = useState<Post[] | null>(null);
@@ -65,7 +67,11 @@ export default function FeedScreen({
   const seenIdsRef = useRef<Set<string>>(new Set());
   const [seenLoaded, setSeenLoaded] = useState(false);
   const activePostIdRef = useRef<string | null>(null);
-  const [listHeight, setListHeight] = useState(height);
+
+  // Compute list height deterministically
+  const showTabs = !profile;
+  const headerHeight = showTabs ? 52 : 0; // FeedHeaderTabs height
+  const listHeight = Math.round(height - tabBarHeight - headerHeight);
 
   const stopAllMedia = useCallback(() => {
     Object.values(mediaRefs.current).forEach((cell) => {
@@ -168,15 +174,6 @@ export default function FeedScreen({
   );
 
   const showTabs = !profile;
-  const handleListLayout = useCallback(
-    (event: { nativeEvent: { layout: { height: number } } }) => {
-      const nextHeight = Math.round(event.nativeEvent.layout.height);
-      if (nextHeight > 0 && nextHeight !== listHeight) {
-        setListHeight(nextHeight);
-      }
-    },
-    [listHeight],
-  );
 
   const visiblePosts = useMemo(() => {
     if (!posts) {
@@ -233,7 +230,7 @@ export default function FeedScreen({
           onSearchPress={handleSearchPress}
         />
       ) : null}
-      <View style={{ flex: 1 }} onLayout={handleListLayout}>
+      <View style={{ flex: 1 }}>
         {posts === null ? (
           <View
             style={{
