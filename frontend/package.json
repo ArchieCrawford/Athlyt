@@ -12,7 +12,8 @@
     "build:android": "powershell -ExecutionPolicy Bypass -File ./scripts/build.ps1 -Platform android -Profile production",
     "build:all": "powershell -ExecutionPolicy Bypass -File ./scripts/build.ps1 -Platform all -Profile production",
     "bundle:ios": "expo export --platform ios",
-    "bundle:android": "expo export --platform android"
+    "bundle:android": "expo export --platform android",
+    "verify:icons": "node ./scripts/verify-icons.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

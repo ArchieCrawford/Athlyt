@@ -3,7 +3,7 @@
     "name": "Tayp",
     "slug": "tayp",
     "entryPoint": "./App.tsx",
-    "version": "1.0.4",
+    "version": "1.0",
     "orientation": "portrait",
     "scheme": "tayp",
     "icon": "./assets/icon.png",
@@ -20,7 +20,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.archie.crawford.tayp",
-      "buildNumber": "4",
+      "buildNumber": "5",
+      "icon": "./assets/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Tayp needs camera access to capture photos and videos.",
