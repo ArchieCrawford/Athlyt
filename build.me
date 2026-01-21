@@ -1,1 +1,13 @@
-powershell -ExecutionPolicy Bypass -File .\frontend\scripts\build.ps1 -Platform ios -Profile production -NonInteractive
+Build Options:
+1. Development Build (for testing feed fixes on device)
+
+npx eas build --profile development --platform ios
+2. Production Build (for App Store/TestFlight)
+From your README, you have a PowerShell script:
+
+
+powershell -ExecutionPolicy Bypass -File build.ps1 -Platform ios -Profile production -NonInteractive
+3. Android Build
+
+npx eas build --profile development --platform android
+Let me check if you have EAS CLI installed first:
