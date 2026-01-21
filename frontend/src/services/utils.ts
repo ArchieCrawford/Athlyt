@@ -1,11 +1,16 @@
-import { supabase, SUPABASE_STORAGE_BUCKET } from "../../supabaseClient";
+import { resolveStorageBucketForPath, supabase } from "../../supabaseClient";
 
-export const saveMediaToStorage = async (mediaUri: string, path: string) => {
+export const saveMediaToStorage = async (
+  mediaUri: string,
+  path: string,
+  bucket?: string,
+) => {
   const response = await fetch(mediaUri);
   const blob = await response.blob();
+  const targetBucket = bucket || resolveStorageBucketForPath(path);
 
   const { error } = await supabase.storage
-    .from(SUPABASE_STORAGE_BUCKET)
+    .from(targetBucket)
     .upload(path, blob, {
       cacheControl: "3600",
       upsert: true,

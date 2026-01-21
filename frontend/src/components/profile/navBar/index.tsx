@@ -31,8 +31,8 @@ export default function ProfileNavBar({
     }
     const username =
       user.username || user.displayName || user.email?.split("@")[0] || "user";
-    const deepLink = `athlyt://u/${user.uid}`;
-    const message = `Find me on Athlyt: ${username}\n${deepLink}`;
+    const deepLink = `tayp://u/${user.uid}`;
+    const message = `Find me on Tayp: ${username}\n${deepLink}`;
 
     try {
       await Share.share(

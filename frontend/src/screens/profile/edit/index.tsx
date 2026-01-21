@@ -177,6 +177,9 @@ export default function EditProfileScreen() {
         .finally(() => {
           if (user?.uid) {
             queryClient.invalidateQueries({ queryKey: keys.user(user.uid) });
+            queryClient.invalidateQueries({ queryKey: keys.newUsers(user.uid) });
+            queryClient.invalidateQueries({ queryKey: keys.allUsers(user.uid) });
+            queryClient.invalidateQueries({ queryKey: ["user-search"] });
           }
           refreshProfile();
           setIsUpdatingAvatar(false);
@@ -214,6 +217,9 @@ export default function EditProfileScreen() {
         .finally(() => {
           if (user?.uid) {
             queryClient.invalidateQueries({ queryKey: keys.user(user.uid) });
+            queryClient.invalidateQueries({ queryKey: keys.newUsers(user.uid) });
+            queryClient.invalidateQueries({ queryKey: keys.allUsers(user.uid) });
+            queryClient.invalidateQueries({ queryKey: ["user-search"] });
           }
           refreshProfile();
           setIsUpdatingAvatar(false);
@@ -230,6 +236,9 @@ export default function EditProfileScreen() {
       .finally(() => {
         if (user?.uid) {
           queryClient.invalidateQueries({ queryKey: keys.user(user.uid) });
+          queryClient.invalidateQueries({ queryKey: keys.newUsers(user.uid) });
+          queryClient.invalidateQueries({ queryKey: keys.allUsers(user.uid) });
+          queryClient.invalidateQueries({ queryKey: ["user-search"] });
         }
         refreshProfile();
         setIsUpdatingAvatar(false);

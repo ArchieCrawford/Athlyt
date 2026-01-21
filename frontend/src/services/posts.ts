@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction } from "react";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../../supabaseClient";
+import { rankFeed, trackEvent } from "./algorithm";
 import { Post, Comment } from "../types";
 
 let commentChannel: RealtimeChannel | null = null;
@@ -33,6 +34,38 @@ export const ensurePosterUrlForPost = async (post: Post): Promise<Post> => {
  */
 
 export const getFeed = async (): Promise<Post[]> => {
+  try {
+    const rankedIds = await rankFeed({ limit: 40 });
+    if (rankedIds.length > 0) {
+      const { data, error } = await supabase
+        .from("post")
+        .select("*")
+        .in("id", rankedIds);
+
+      if (!error) {
+        const orderMap = new Map(
+          rankedIds.map((id, index) => [id, index]),
+        );
+        const ordered = (data || []).sort(
+          (a, b) =>
+            (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0),
+        );
+
+        return await Promise.all(
+          ordered.map(async (item) =>
+            ensurePosterUrlForPost({
+              id: item.id,
+              ...item,
+              creation: item.creation ?? item.created_at,
+            } as Post),
+          ),
+        );
+      }
+    }
+  } catch (error) {
+    console.warn("Ranked feed unavailable, falling back.", error);
+  }
+
   const { data, error } = await supabase
     .from("post")
     .select("*")
@@ -40,6 +73,80 @@ export const getFeed = async (): Promise<Post[]> => {
 
   if (error) {
     console.error("Failed to get feed: ", error);
+    throw error;
+  }
+
+  return await Promise.all(
+    (data || []).map(async (item) =>
+      ensurePosterUrlForPost({
+        id: item.id,
+        ...item,
+        creation: item.creation ?? item.created_at,
+      } as Post),
+    ),
+  );
+};
+
+export const getRecentPosts = async ({
+  limit = 12,
+  excludeUserId,
+  excludeUserIds = [],
+}: {
+  limit?: number;
+  excludeUserId?: string;
+  excludeUserIds?: string[];
+}): Promise<Post[]> => {
+  const excluded = [
+    ...(excludeUserId ? [excludeUserId] : []),
+    ...excludeUserIds,
+  ];
+
+  let request = supabase
+    .from("post")
+    .select("*")
+    .order("creation", { ascending: false })
+    .limit(limit);
+
+  if (excluded.length > 0) {
+    const excludeList = excluded.map((id) => `"${id}"`).join(",");
+    request = request.not("creator", "in", `(${excludeList})`);
+  }
+
+  const { data, error } = await request;
+
+  if (error) {
+    console.error("Failed to get recent posts: ", error);
+    throw error;
+  }
+
+  const posts = await Promise.all(
+    (data || []).map(async (item) =>
+      ensurePosterUrlForPost({
+        id: item.id,
+        ...item,
+        creation: item.creation ?? item.created_at,
+      } as Post),
+    ),
+  );
+
+  return posts;
+};
+
+export const getPostsByCreators = async (
+  creatorIds: string[],
+): Promise<Post[]> => {
+  if (!creatorIds.length) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("post")
+    .select("*")
+    .in("creator", creatorIds)
+    .order("creation", { ascending: false });
+
+  if (error) {
+    console.error("Failed to get filtered feed: ", error);
     throw error;
   }
 
@@ -137,6 +244,8 @@ export const updateLike = async (
 
       if (error) throw error;
     }
+    const eventType = currentLikeState ? "unlike" : "like";
+    void trackEvent({ postId, eventType }).catch(() => {});
   } catch (error) {
     throw new Error("Could not update like");
   }

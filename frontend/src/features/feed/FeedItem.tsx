@@ -49,9 +49,6 @@ interface FeedItemProps {
   onToggleMute: () => void;
 }
 
-const FALLBACK_VIDEO_SOURCE =
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-
 const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
   ({ item, height, width, muted, onToggleMute }, parentRef) => {
     const theme = useTheme();
@@ -179,17 +176,15 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
       ? `https://stream.mux.com/${muxPlaybackId}.m3u8`
       : undefined;
     const muxPosterUrl = getMuxThumbnail(muxPlaybackId);
-    const inferredImage =
-      typeof rawMediaPath === "string" &&
-      /\.(png|jpe?g|webp|gif)$/i.test(rawMediaPath.split("?")[0]);
-    const isImage =
-      item.media_type === "image" || (!item.media_type && inferredImage);
+    const isVideo = item.media_type === "video";
     const mediaUrl = getMediaPublicUrl(rawMediaPath);
     const thumbUrl = getMediaPublicUrl(rawThumbPath);
-    const videoUri = isImage ? undefined : muxStreamUrl ?? undefined;
-    const posterUri = isImage ? (thumbUrl ?? mediaUrl) : muxPosterUrl ?? null;
+    const videoUri = isVideo ? muxStreamUrl ?? undefined : undefined;
+    const posterUri = isVideo
+      ? muxPosterUrl ?? thumbUrl ?? null
+      : thumbUrl ?? mediaUrl ?? null;
     const hasPlayableVideo =
-      !isImage && typeof videoUri === "string" && videoUri.trim().length > 0;
+      isVideo && typeof videoUri === "string" && videoUri.trim().length > 0;
     const username = user?.displayName || user?.email || item.creator;
     const avatarUri = user?.avatar_path ?? user?.photoURL;
     const showFollow = currentUserId ? currentUserId !== item.creator : true;
@@ -198,11 +193,7 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
       item.sharesCount !== undefined ? `${item.sharesCount}` : "Share";
 
     const safeVideoSource = {
-      uri: hasPlayableVideo
-        ? videoUri
-        : item.media_type === "video"
-          ? ""
-          : FALLBACK_VIDEO_SOURCE,
+      uri: hasPlayableVideo ? videoUri : "",
     } as VideoSource;
 
     const player = useVideoPlayer(
@@ -329,7 +320,7 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
             resizeMode="cover"
             style={styles.media}
           >
-            {!isImage ? (
+            {isVideo ? (
               <Pressable
                 onPress={onToggleMute}
                 style={StyleSheet.absoluteFillObject}

@@ -48,7 +48,7 @@ export default function SearchUserItem({ item }: { item: SearchUser }) {
           {item.displayName || item.email}
         </AppText>
         <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
-          @{item.email?.split("@")[0]}
+          @{item.username || item.email?.split("@")[0] || "user"}
         </AppText>
       </View>
       <Avatar

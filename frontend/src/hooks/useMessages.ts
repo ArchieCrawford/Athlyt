@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { createChat, messagesListener } from "../services/chat";
+import { findOrCreateChat, messagesListener } from "../services/chat";
 import { RootState } from "../redux/store";
 import { Message } from "../../types";
 
@@ -16,19 +16,40 @@ export const useMessages = (chatId?: string, contactId?: string) => {
   }, []);
 
   useEffect(() => {
-    let listenerInstance: (() => void) | undefined;
+    if (chatId && chatId !== chatIdInst) {
+      setChatIdInst(chatId);
+    }
+  }, [chatId, chatIdInst]);
 
-    if (!chatIdInst) {
-      let chat = chats.find((item) =>
+  useEffect(() => {
+    let listenerInstance: (() => void) | undefined;
+    let isMounted = true;
+
+    const ensureChat = async () => {
+      if (chatIdInst || !contactId) {
+        return;
+      }
+
+      const chat = chats.find((item) =>
         item.members.some((member) => member === contactId),
       );
 
-      if (!chat && contactId) {
-        createChat(contactId).then((res) => setChatIdInst(res.id));
-      } else if (chat) {
+      if (chat) {
         setChatIdInst(chat.id);
+        return;
       }
-    }
+
+      try {
+        const createdChat = await findOrCreateChat(contactId);
+        if (isMounted) {
+          setChatIdInst(createdChat.id);
+        }
+      } catch (error) {
+        console.error("Failed to create chat", error);
+      }
+    };
+
+    ensureChat();
 
     if (currentUser != null && chatIdInst) {
       messagesListener(handleMessagesChange, chatIdInst).then((fn) => {
@@ -37,9 +58,10 @@ export const useMessages = (chatId?: string, contactId?: string) => {
     }
 
     return () => {
+      isMounted = false;
       listenerInstance && listenerInstance();
     };
-  }, [handleMessagesChange, currentUser, chatIdInst]);
+  }, [handleMessagesChange, currentUser, chatIdInst, contactId, chats]);
 
   return { messages, chatIdInst };
 };

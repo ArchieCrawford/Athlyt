@@ -1,9 +1,9 @@
 {
   "expo": {
     "name": "Tayp",
-    "slug": "frontend",
+    "slug": "tayp",
     "entryPoint": "./App.tsx",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "scheme": "tayp",
     "icon": "./assets/icon.png",
@@ -48,10 +48,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "84f802e3-602d-4196-bb11-2582c557cbdc"
+        "projectId": "65e2382d-6be8-47b8-b378-e9e81883d23b"
       }
     },
-    "owner": "archie.crawford",
+    "owner": "tayp",
     "plugins": [
       "expo-video",
       "expo-font"

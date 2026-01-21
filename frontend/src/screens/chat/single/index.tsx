@@ -10,6 +10,10 @@ import { sendMessage } from "../../../services/chat";
 import { RootStackParamList } from "../../../navigation/main";
 import { RouteProp } from "@react-navigation/native";
 import { Message } from "../../../../types";
+import { useQueryClient } from "@tanstack/react-query";
+import { keys } from "../../../hooks/queryKeys";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../redux/store";
 
 const ChatSingleScreen = ({
   route,
@@ -20,14 +24,27 @@ const ChatSingleScreen = ({
   const [message, setMessage] = useState("");
 
   const { messages, chatIdInst } = useMessages(chatId, contactId);
+  const queryClient = useQueryClient();
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
+  );
 
-  const handleMessageSend = () => {
-    if (message.length == 0 || !chatIdInst) {
+  const handleMessageSend = async () => {
+    if (message.length === 0 || !chatIdInst) {
       return;
     }
 
+    const nextMessage = message;
     setMessage("");
-    sendMessage(chatIdInst, message);
+    try {
+      await sendMessage(chatIdInst, nextMessage);
+      queryClient.invalidateQueries({ queryKey: keys.messages(chatIdInst) });
+      if (currentUserId) {
+        queryClient.invalidateQueries({ queryKey: keys.chats(currentUserId) });
+      }
+    } catch (error) {
+      console.error("Failed to send message", error);
+    }
   };
 
   const renderItem = ({ item }: { item: Message }) => {
@@ -50,7 +67,7 @@ const ChatSingleScreen = ({
           placeholder="Send Message..."
           style={styles.input}
         />
-        <TouchableOpacity onPress={() => handleMessageSend()}>
+        <TouchableOpacity onPress={handleMessageSend}>
           <Ionicons name="arrow-up-circle" size={34} color={"crimson"} />
         </TouchableOpacity>
       </View>

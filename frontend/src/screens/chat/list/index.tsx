@@ -1,24 +1,49 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   View,
   StyleSheet,
   ScrollView,
   Pressable,
 } from "react-native";
-import NavBarGeneral from "../../../components/general/navbar";
 import ChatListItem from "../../../components/chat/list/item";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../redux/store";
-import { Chat } from "../../../../types";
+import { Chat, SearchUser } from "../../../../types";
 import Screen from "../../../components/layout/Screen";
 import AppText from "../../../components/ui/AppText";
 import { useTheme } from "../../../theme/useTheme";
 import { Feather } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../../navigation/main";
+import Input from "../../../components/ui/Input";
+import Avatar from "../../../components/ui/Avatar";
+import { useQuery } from "@tanstack/react-query";
+import { queryUsersByName } from "../../../services/user";
+import { findOrCreateChat } from "../../../services/chat";
+import { keys } from "../../../hooks/queryKeys";
 
 const ChatScreen = () => {
   const chats = useSelector((state: RootState) => state.chat.list);
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
+  );
   const theme = useTheme();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerQuery, setComposerQuery] = useState("");
+  const [creatingChat, setCreatingChat] = useState(false);
+
+  const trimmedQuery = composerQuery.trim();
+  const { data: searchResults = [], isFetching: searchLoading } = useQuery({
+    queryKey: keys.userSearch(trimmedQuery, currentUserId ?? ""),
+    queryFn: () =>
+      queryUsersByName(trimmedQuery, currentUserId ? [currentUserId] : []),
+    enabled: composerOpen && trimmedQuery.length > 0,
+  });
 
   const styles = useMemo(
     () =>
@@ -33,6 +58,32 @@ const ChatScreen = () => {
         headerIcon: {
           position: "absolute",
           right: theme.spacing.lg,
+        },
+        composerCard: {
+          marginHorizontal: theme.spacing.lg,
+          marginBottom: theme.spacing.lg,
+          padding: theme.spacing.md,
+          borderRadius: theme.radius.lg,
+          backgroundColor: theme.colors.surface2,
+          borderWidth: 1,
+          borderColor: theme.colors.borderSubtle,
+          gap: theme.spacing.sm,
+        },
+        composerHeader: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        },
+        userRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.spacing.md,
+          paddingVertical: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.sm,
+          borderRadius: theme.radius.md,
+          backgroundColor: theme.colors.surface,
+          borderWidth: 1,
+          borderColor: theme.colors.borderSubtle,
         },
         bubblesRow: {
           flexDirection: "row",
@@ -71,6 +122,32 @@ const ChatScreen = () => {
     [theme],
   );
 
+  const handleNewMessageToggle = () => {
+    setComposerOpen((prev) => {
+      if (prev) {
+        setComposerQuery("");
+      }
+      return !prev;
+    });
+  };
+
+  const handleStartChat = async (user: SearchUser) => {
+    if (!user?.uid) {
+      return;
+    }
+    setCreatingChat(true);
+    try {
+      const chat = await findOrCreateChat(user.uid);
+      setComposerOpen(false);
+      setComposerQuery("");
+      navigation.navigate("chatSingle", { chatId: chat.id, contactId: user.uid });
+    } catch (error) {
+      console.error("Failed to start chat", error);
+    } finally {
+      setCreatingChat(false);
+    }
+  };
+
   const renderItem = ({ item }: { item: Chat }) => {
     return <ChatListItem chat={item} />;
   };
@@ -105,8 +182,8 @@ const ChatScreen = () => {
     <Screen padding={false}>
       <View style={styles.headerRow}>
         <AppText variant="subtitle">Inbox</AppText>
-        <Pressable style={styles.headerIcon}>
-          <Feather name="search" size={20} color={theme.colors.text} />
+        <Pressable style={styles.headerIcon} onPress={handleNewMessageToggle}>
+          <Feather name="edit-3" size={20} color={theme.colors.text} />
         </Pressable>
       </View>
       <ScrollView
@@ -115,6 +192,64 @@ const ChatScreen = () => {
           backgroundColor: theme.colors.bg,
         }}
       >
+        {composerOpen ? (
+          <View style={styles.composerCard}>
+            <View style={styles.composerHeader}>
+              <AppText variant="subtitle">New Message</AppText>
+              {creatingChat ? (
+                <ActivityIndicator color={theme.colors.textMuted} />
+              ) : null}
+            </View>
+            <Input
+              value={composerQuery}
+              onChangeText={setComposerQuery}
+              placeholder="Search users"
+            />
+            {trimmedQuery.length === 0 ? (
+              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+                Start typing to find someone.
+              </AppText>
+            ) : searchLoading ? (
+              <ActivityIndicator color={theme.colors.textMuted} />
+            ) : searchResults.length === 0 ? (
+              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+                No users found.
+              </AppText>
+            ) : (
+              <View style={{ gap: theme.spacing.sm }}>
+                {searchResults.map((user) => (
+                  <Pressable
+                    key={user.id}
+                    style={({ pressed }) => [
+                      styles.userRow,
+                      { opacity: pressed ? 0.85 : 1 },
+                    ]}
+                    onPress={() => handleStartChat(user)}
+                  >
+                    <Avatar
+                      size={44}
+                      uri={user.avatar_path ?? user.photoURL}
+                      label={user.displayName || user.email}
+                    />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <AppText variant="body">
+                        {user.displayName || user.email}
+                      </AppText>
+                      {user.username ? (
+                        <AppText
+                          variant="caption"
+                          style={{ color: theme.colors.textMuted }}
+                        >
+                          @{user.username}
+                        </AppText>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
         <View style={styles.bubblesRow}>
           {renderBubble("Create", "plus")}
           {renderBubble("Contacts")}

@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction } from "react";
 import { Pressable, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../theme/useTheme";
 import AppText from "../../ui/AppText";
 import Button from "../../ui/Button";
@@ -34,8 +35,16 @@ export default function AuthMenu({
   const theme = useTheme();
 
   return (
-    <View style={{ flex: 1, justifyContent: "space-between" }}>
-      <View style={{ gap: theme.spacing.lg }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.bg,
+        padding: theme.spacing.lg,
+      }}
+      edges={["top", "bottom"]}
+    >
+      <View style={{ flex: 1, justifyContent: "space-between" }}>
+        <View style={{ gap: theme.spacing.lg }}>
         <AppText variant="title">
           {authPage == 0 ? "Sign In" : "Sign Up"}
         </AppText>
@@ -47,31 +56,37 @@ export default function AuthMenu({
           onPress={() => setDetailsPage(true)}
           icon={<Feather name="user" size={20} color={theme.colors.text} />}
         />
-      </View>
-
-      <Pressable
-        onPress={() => (authPage == 0 ? setAuthPage(1) : setAuthPage(0))}
-        style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            flexWrap: "wrap",
-            gap: theme.spacing.xs,
-          }}
-        >
-          <AppText variant="body">
-            {authPage == 0 ? "Don't have an account?" : "Already have an account?"}
-          </AppText>
-          <AppText
-            variant="body"
-            style={{ color: theme.colors.accent, fontWeight: theme.type.fontWeights.bold }}
-          >
-            {authPage == 0 ? "Sign Up" : "Sign In"}
-          </AppText>
         </View>
-      </Pressable>
-    </View>
+
+        <Pressable
+          onPress={() => (authPage == 0 ? setAuthPage(1) : setAuthPage(0))}
+          style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              gap: theme.spacing.xs,
+            }}
+          >
+            <AppText variant="body">
+              {authPage == 0
+                ? "Don't have an account?"
+                : "Already have an account?"}
+            </AppText>
+            <AppText
+              variant="body"
+              style={{
+                color: theme.colors.accent,
+                fontWeight: theme.type.fontWeights.bold,
+              }}
+            >
+              {authPage == 0 ? "Sign Up" : "Sign In"}
+            </AppText>
+          </View>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
 }

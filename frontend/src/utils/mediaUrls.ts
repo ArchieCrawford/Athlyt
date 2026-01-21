@@ -1,6 +1,4 @@
-import { supabase } from "../../supabaseClient";
-
-const MEDIA_BUCKET = "media";
+import { resolveStorageBucketForPath, supabase } from "../../supabaseClient";
 
 const isRemoteUri = (uri: string) => /^https?:\/\//i.test(uri);
 const isLocalUri = (uri: string) => /^(file|content):\/\//i.test(uri);
@@ -13,7 +11,8 @@ export const getMediaPublicUrl = (path?: string | null) => {
   console.warn("Non-http media path passed to image; converting to public URL.", {
     path,
   });
-  const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
+  const bucket = resolveStorageBucketForPath(path);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data?.publicUrl ?? null;
 };
 
@@ -25,8 +24,9 @@ export const getMediaSignedUrl = async (
   if (isRemoteUri(path) || isLocalUri(path)) {
     return path;
   }
+  const bucket = resolveStorageBucketForPath(path);
   const { data, error } = await supabase.storage
-    .from(MEDIA_BUCKET)
+    .from(bucket)
     .createSignedUrl(path, expiresIn);
   if (error) {
     console.warn("Failed to create signed media URL", error);

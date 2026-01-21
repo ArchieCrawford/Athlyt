@@ -22,8 +22,13 @@ export const useFollowingMutation = (
     (state: RootState) => state.auth.currentUser?.uid,
   );
 
-  const { onMutate, ...rest } = options as {
+  const { onMutate, onSuccess, ...rest } = options as {
     onMutate?: (variables: any) => unknown | Promise<unknown>;
+    onSuccess?: (
+      data: unknown,
+      variables: any,
+      context: unknown,
+    ) => unknown | Promise<unknown>;
     [key: string]: unknown;
   };
 
@@ -44,6 +49,29 @@ export const useFollowingMutation = (
       );
 
       return userResult;
+    },
+    onSuccess: async (data, variables, context) => {
+      if (onSuccess) {
+        await onSuccess(data, variables, context);
+      }
+
+      if (!currentUserId) {
+        return;
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: keys.followingIds(currentUserId),
+      });
+      queryClient.invalidateQueries({ queryKey: keys.friendIds(currentUserId) });
+      queryClient.invalidateQueries({
+        queryKey: keys.newPosts(currentUserId, true),
+      });
+      queryClient.invalidateQueries({ queryKey: keys.user(currentUserId) });
+      if (variables?.otherUserId) {
+        queryClient.invalidateQueries({
+          queryKey: keys.user(variables.otherUserId),
+        });
+      }
     },
   });
 };

@@ -96,7 +96,7 @@ export const sendMessage = async (chatId: string, message: string) => {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    return;
+    throw new Error("User is not authenticated");
   }
 
   const { error } = await supabase.from("messages").insert({
@@ -108,35 +108,47 @@ export const sendMessage = async (chatId: string, message: string) => {
 
   if (error) {
     console.error("Error sending message", error);
-    return;
+    throw error;
   }
 
-  await supabase
+  const { error: updateError } = await supabase
     .from("chats")
     .update({
       lastUpdate: new Date().toISOString(),
       lastMessage: message,
     })
     .eq("id", chatId);
+
+  if (updateError) {
+    console.error("Error updating chat metadata", updateError);
+    throw updateError;
+  }
 };
 
-export const createChat = async (contactId: string) => {
+export const createChat = async (
+  contactId: string,
+  currentUserId?: string,
+) => {
   try {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+    let resolvedUserId = currentUserId;
+    if (!resolvedUserId) {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-    if (error || !user) {
-      throw new Error("User is not authenticated");
+      if (error || !user) {
+        throw new Error("User is not authenticated");
+      }
+      resolvedUserId = user.id;
     }
 
     const { data: chatData, error: chatError } = await supabase
       .from("chats")
       .insert({
         lastUpdate: new Date().toISOString(),
-        lastMessage: "Send a first message",
-        members: [contactId, user.id],
+        lastMessage: "",
+        members: [contactId, resolvedUserId],
       })
       .select()
       .single();
@@ -150,4 +162,40 @@ export const createChat = async (contactId: string) => {
     console.error("Error creating chat: ", error);
     throw error;
   }
+};
+
+export const findChatByMembers = async (
+  memberA: string,
+  memberB: string,
+): Promise<Chat | null> => {
+  const { data, error } = await supabase
+    .from("chats")
+    .select("*")
+    .contains("members", [memberA, memberB])
+    .order("lastUpdate", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data && data[0] ? (data[0] as Chat) : null);
+};
+
+export const findOrCreateChat = async (contactId: string) => {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new Error("User is not authenticated");
+  }
+
+  const existingChat = await findChatByMembers(user.id, contactId);
+  if (existingChat) {
+    return existingChat;
+  }
+
+  return createChat(contactId, user.id);
 };

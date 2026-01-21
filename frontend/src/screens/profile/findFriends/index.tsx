@@ -226,8 +226,8 @@ export default function FindFriendsScreen() {
       currentUser.displayName ||
       currentUser.email?.split("@")[0] ||
       "athlete";
-    const deepLink = `athlyt://u/${currentUser.uid}`;
-    const message = `Add me on Athlyt: ${label}\n${deepLink}`;
+    const deepLink = `tayp://u/${currentUser.uid}`;
+    const message = `Add me on Tayp: ${label}\n${deepLink}`;
     try {
       await Share.share({ message });
     } catch (error) {

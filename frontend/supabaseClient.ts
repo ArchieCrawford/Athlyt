@@ -11,7 +11,31 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const SUPABASE_STORAGE_BUCKET = "media";
+const storageBucket = process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET?.trim();
+const profileBucket = process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET_PROFILE?.trim();
+const postsBucket = process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET_POSTS?.trim();
+
+export const SUPABASE_STORAGE_BUCKET = storageBucket || "Athlyt";
+export const SUPABASE_STORAGE_BUCKET_PROFILE =
+  profileBucket || SUPABASE_STORAGE_BUCKET;
+export const SUPABASE_STORAGE_BUCKET_POSTS =
+  postsBucket || SUPABASE_STORAGE_BUCKET;
+
+export const resolveStorageBucketForPath = (path?: string | null) => {
+  if (!path) {
+    return SUPABASE_STORAGE_BUCKET;
+  }
+
+  if (path.startsWith("profileImage/") || path.startsWith("avatars/")) {
+    return SUPABASE_STORAGE_BUCKET_PROFILE;
+  }
+
+  if (path.startsWith("posts/") || path.startsWith("postThumbs/")) {
+    return SUPABASE_STORAGE_BUCKET_POSTS;
+  }
+
+  return SUPABASE_STORAGE_BUCKET;
+};
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

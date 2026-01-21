@@ -6,6 +6,7 @@ import SettingsPrivacyScreen from "../../screens/profile/settings/PrivacyScreen"
 import SecurityPermissionsScreen from "../../screens/profile/settings/SecurityPermissionsScreen";
 import NotificationsScreen from "../../screens/profile/settings/NotificationsScreen";
 import SettingsLegalScreen from "../../screens/profile/settings/LegalScreen";
+import DeveloperApiScreen from "../../screens/profile/settings/DeveloperApiScreen";
 import ChangePasswordScreen from "../../screens/auth/ChangePassword";
 import TermsScreen from "../../screens/legal/TermsScreen";
 import PrivacyScreen from "../../screens/legal/PrivacyScreen";
@@ -22,6 +23,7 @@ export type SettingsStackParamList = {
   SecurityPermissions: undefined;
   Notifications: undefined;
   Legal: undefined;
+  DeveloperApi: undefined;
   ChangePassword: undefined;
   LegalTerms: undefined;
   LegalPrivacy: undefined;
@@ -85,6 +87,11 @@ export default function SettingsStack() {
         name="Legal"
         component={SettingsLegalScreen}
         options={{ title: "Legal" }}
+      />
+      <Stack.Screen
+        name="DeveloperApi"
+        component={DeveloperApiScreen}
+        options={{ title: "Developer API" }}
       />
       <Stack.Screen
         name="ChangePassword"

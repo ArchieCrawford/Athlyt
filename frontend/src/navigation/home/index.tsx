@@ -10,6 +10,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
 import { useTheme } from "../../theme/useTheme";
 import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type HomeStackParamList = {
   feed: { tabBarHeight?: number };
@@ -24,9 +25,11 @@ const Tab = createMaterialBottomTabNavigator<HomeStackParamList>();
 export default function HomeScreen() {
   useChats();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const currentUserId = useSelector(
     (state: RootState) => state.auth.currentUser?.uid,
   );
+  const tabBarHeight = theme.tabBar.height + insets.bottom;
 
   return (
     <Tab.Navigator
@@ -37,8 +40,8 @@ export default function HomeScreen() {
       barStyle={{
         backgroundColor: theme.colors.surface,
         borderTopWidth: 0,
-        height: theme.tabBar.height,
-        paddingBottom: theme.tabBar.paddingBottom,
+        height: tabBarHeight,
+        paddingBottom: insets.bottom + theme.tabBar.paddingBottom,
         paddingTop: theme.tabBar.paddingTop,
         elevation: 0,
         shadowColor: "transparent",
@@ -51,7 +54,7 @@ export default function HomeScreen() {
       <Tab.Screen
         name="feed"
         component={FeedNavigation}
-        initialParams={{ tabBarHeight: theme.tabBar.height }}
+        initialParams={{ tabBarHeight }}
         options={{
           tabBarIcon: ({ color }) => (
             <Feather name="home" size={24} color={color} />

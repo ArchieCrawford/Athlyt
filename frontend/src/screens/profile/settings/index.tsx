@@ -76,6 +76,14 @@ export default function SettingsHomeScreen() {
         <SettingsRow label="Legal" onPress={() => navigation.navigate("Legal")} />
       </View>
 
+      <Text style={styles.sectionTitle}>Developer</Text>
+      <View style={styles.sectionCard}>
+        <SettingsRow
+          label="Developer API"
+          onPress={() => navigation.navigate("DeveloperApi")}
+        />
+      </View>
+
       <Text style={styles.sectionTitle}>Logout</Text>
       <View style={styles.sectionCard}>
         <SettingsRow

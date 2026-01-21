@@ -16,6 +16,12 @@ import { useTheme } from "../../theme/useTheme";
 import ProfileMenuSheet from "../../components/profile/ProfileMenuSheet";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { supabase } from "../../../supabaseClient";
+import { useQuery } from "@tanstack/react-query";
+import { useSelector } from "react-redux";
+import { RootState } from "../../redux/store";
+import { getScheduledPosts } from "../../services/scheduledPosts";
+import { keys } from "../../hooks/queryKeys";
+import AppText from "../../components/ui/AppText";
 
 type ProfileScreenRouteProp =
   | RouteProp<RootStackParamList, "profileOther">
@@ -34,6 +40,9 @@ export default function ProfileScreen({
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const isFocused = useIsFocused();
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
+  );
 
   const providerUserId = useContext(CurrentUserProfileItemInViewContext);
 
@@ -42,6 +51,13 @@ export default function ProfileScreen({
   );
 
   const user = userQuery.data;
+  const isSelf = !!currentUserId && user?.uid === currentUserId;
+
+  const { data: scheduledPosts = [], isLoading: scheduledLoading } = useQuery({
+    queryKey: keys.scheduledPosts(currentUserId ?? ""),
+    queryFn: () => getScheduledPosts(currentUserId ?? ""),
+    enabled: isSelf,
+  });
 
   useEffect(() => {
     if (!user) {
@@ -88,7 +104,7 @@ export default function ProfileScreen({
   };
 
   return (
-    <Screen padding={false}>
+    <Screen padding={false} safeAreaEdges={["bottom"]}>
       <ProfileNavBar user={user} onMenuPress={() => setMenuOpen(true)} />
       <ScrollView
         contentContainerStyle={{
@@ -97,6 +113,64 @@ export default function ProfileScreen({
         showsVerticalScrollIndicator={false}
       >
         <ProfileHeader user={user} />
+        {isSelf ? (
+          <View
+            style={{
+              paddingHorizontal: theme.spacing.lg,
+              paddingTop: theme.spacing.md,
+            }}
+          >
+            <AppText variant="subtitle">Scheduled</AppText>
+            {scheduledLoading ? (
+              <AppText
+                variant="muted"
+                style={{ marginTop: theme.spacing.xs }}
+              >
+                Loading scheduled posts...
+              </AppText>
+            ) : scheduledPosts.length === 0 ? (
+              <AppText
+                variant="muted"
+                style={{ marginTop: theme.spacing.xs }}
+              >
+                No scheduled posts.
+              </AppText>
+            ) : (
+              <View style={{ marginTop: theme.spacing.sm, gap: theme.spacing.sm }}>
+                {scheduledPosts.map((post) => {
+                  const description =
+                    typeof post.payload?.description === "string"
+                      ? post.payload.description
+                      : "";
+                  const runAtLabel = new Date(post.run_at).toLocaleString();
+                  const statusLabel =
+                    post.status.charAt(0).toUpperCase() + post.status.slice(1);
+
+                  return (
+                    <View
+                      key={post.id}
+                      style={{
+                        backgroundColor: theme.colors.surface2,
+                        padding: theme.spacing.md,
+                        borderRadius: theme.radius.md,
+                      }}
+                    >
+                      <AppText
+                        variant="caption"
+                        style={{ color: theme.colors.textMuted }}
+                      >
+                        {statusLabel} · {runAtLabel}
+                      </AppText>
+                      <AppText variant="body" numberOfLines={2}>
+                        {description || "No description"}
+                      </AppText>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        ) : null}
         <View style={{ paddingHorizontal: theme.spacing.lg }}>
           <ProfilePostList posts={userPosts} />
         </View>

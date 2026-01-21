@@ -8,6 +8,10 @@ export interface Post {
   poster_url?: string | null;
   mux_playback_id?: string | null;
   description: string;
+  sport?: string | null;
+  team?: string | null;
+  is_public?: boolean;
+  is_deleted?: boolean;
   likesCount: number;
   commentsCount: number;
   bookmarksCount?: number;
@@ -53,4 +57,39 @@ export interface Message {
   id: string;
   creator: string;
   message: string;
+}
+
+export type ScheduledPostStatus =
+  | "scheduled"
+  | "running"
+  | "posted"
+  | "failed"
+  | "canceled";
+
+export interface ScheduledPostPayload {
+  description?: string;
+  media?: string[];
+  media_type?: "image" | "video";
+  mux_playback_id?: string | null;
+  poster_url?: string | null;
+}
+
+export interface ScheduledPost {
+  id: string;
+  owner: string;
+  run_at: string;
+  payload: ScheduledPostPayload;
+  status: ScheduledPostStatus;
+  posted_post_id?: string | null;
+  last_error?: string | null;
+  created_at: string;
+}
+
+export interface ApiKey {
+  id: string;
+  owner?: string;
+  label?: string | null;
+  last_used_at?: string | null;
+  created_at: string;
+  revoked_at?: string | null;
 }

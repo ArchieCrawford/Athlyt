@@ -1,6 +1,70 @@
-import { supabase, SUPABASE_STORAGE_BUCKET } from "../../supabaseClient";
+import { resolveStorageBucketForPath, supabase } from "../../supabaseClient";
 import { saveMediaToStorage } from "./utils";
 import { SearchUser, User } from "../../types";
+
+type UserCreatedAtColumn = "created_at" | "createdAt";
+type FollowColumns = {
+  follower: "follower" | "follower_id";
+  following: "following" | "user_id";
+};
+
+let userCreatedAtColumn: UserCreatedAtColumn = "created_at";
+let followColumns: FollowColumns = { follower: "follower", following: "following" };
+
+const isMissingColumnError = (error: { code?: string; message?: string }, column: string) => {
+  if (!error) {
+    return false;
+  }
+  if (error.code === "42703") {
+    return true;
+  }
+  if (typeof error.message === "string") {
+    return error.message.includes(column);
+  }
+  return false;
+};
+
+const runUserOrderQuery = async <T>(
+  builder: (column: UserCreatedAtColumn) => Promise<{ data: T | null; error: any }>,
+): Promise<T> => {
+  let column = userCreatedAtColumn;
+  let result = await builder(column);
+
+  if (result.error && isMissingColumnError(result.error, column)) {
+    column = column === "created_at" ? "createdAt" : "created_at";
+    userCreatedAtColumn = column;
+    result = await builder(column);
+  }
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return (result.data ?? []) as T;
+};
+
+const runFollowQuery = async <T>(
+  builder: (columns: FollowColumns) => Promise<{ data: T | null; error: any }>,
+): Promise<{ data: T; columns: FollowColumns }> => {
+  let result = await builder(followColumns);
+  if (
+    result.error &&
+    (isMissingColumnError(result.error, followColumns.follower) ||
+      isMissingColumnError(result.error, followColumns.following))
+  ) {
+    followColumns =
+      followColumns.follower === "follower"
+        ? { follower: "follower_id", following: "user_id" }
+        : { follower: "follower", following: "following" };
+    result = await builder(followColumns);
+  }
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return { data: (result.data ?? []) as T, columns: followColumns };
+};
 
 export const saveUserProfileImage = (image: string) =>
   new Promise<void>(async (resolve, reject) => {
@@ -14,12 +78,12 @@ export const saveUserProfileImage = (image: string) =>
         throw new Error("User is not authenticated");
       }
 
-      const avatarPath = `avatars/${user.id}.jpg`;
+      const avatarPath = `profileImage/${user.id}`;
       await saveMediaToStorage(image, avatarPath);
 
       const { error: updateError } = await supabase
         .from("user")
-        .update({ avatar_path: avatarPath, photoURL: null })
+        .update({ avatar_path: null, photoURL: avatarPath })
         .eq("uid", user.id);
 
       if (updateError) {
@@ -27,7 +91,7 @@ export const saveUserProfileImage = (image: string) =>
       }
 
       await supabase.auth.updateUser({
-        data: { avatar_path: avatarPath },
+        data: { avatar_path: null, photoURL: avatarPath },
       });
 
       resolve();
@@ -59,12 +123,12 @@ export const removeUserProfileImage = () =>
       }
 
       await supabase.auth.updateUser({
-        data: { avatar_path: null },
+        data: { avatar_path: null, photoURL: null },
       });
 
-      await supabase.storage
-        .from(SUPABASE_STORAGE_BUCKET)
-        .remove([`avatars/${user.id}.jpg`]);
+      const path = `profileImage/${user.id}`;
+      const bucket = resolveStorageBucketForPath(path);
+      await supabase.storage.from(bucket).remove([path]);
 
       resolve();
     } catch (error) {
@@ -131,25 +195,73 @@ export const queryUsersByEmail = (email: string): Promise<SearchUser[]> => {
   });
 };
 
-export const queryUsersByName = (query: string): Promise<SearchUser[]> => {
+export const queryUsersByName = (
+  query: string,
+  excludeIds: string[] = [],
+): Promise<SearchUser[]> => {
   return new Promise(async (resolve, reject) => {
     try {
-      if (query === "") {
+      const normalized = query.trim();
+      if (normalized === "") {
         resolve([]);
         return;
       }
 
-      const { data, error } = await supabase
-        .from("user")
-        .select("*")
-        .or(`displayName.ilike.${query}%,email.ilike.${query}%,username.ilike.${query}%`)
-        .limit(15);
+      const like = `%${normalized}%`;
+      const excludeList = excludeIds.map((id) => `"${id}"`).join(",");
 
-      if (error) {
-        throw error;
+      const buildSearch = (table: string, includeUsername: boolean) => {
+        let request = supabase.from(table).select("*");
+        if (includeUsername) {
+          request = request.or(
+            `displayName.ilike.${like},username.ilike.${like}`,
+          );
+        } else {
+          request = request.ilike("displayName", like);
+        }
+        if (excludeIds.length > 0) {
+          request = request.not("uid", "in", `(${excludeList})`);
+        }
+        return request.limit(15);
+      };
+
+      let data: SearchUser[] | null = null;
+
+      try {
+        const { data: viewData, error } = await buildSearch(
+          "user_search",
+          true,
+        );
+        if (error) {
+          throw error;
+        }
+        data = (viewData || []) as SearchUser[];
+      } catch (error: any) {
+        const { data: tableData, error: tableError } = await buildSearch(
+          "user",
+          true,
+        );
+        if (tableError) {
+          if (isMissingColumnError(tableError, "username")) {
+            const { data: fallbackData, error: fallbackError } =
+              await buildSearch("user", false);
+            if (fallbackError) {
+              throw fallbackError;
+            }
+            data = (fallbackData || []) as SearchUser[];
+          } else {
+            throw tableError;
+          }
+        } else {
+          data = (tableData || []) as SearchUser[];
+        }
       }
 
-      const users = (data || []).map((item) => ({ id: item.uid, ...item })) as SearchUser[];
+      const users = (data || []).map((item: any) => ({
+        id: item.uid,
+        ...item,
+        email: item.email ?? "",
+      })) as SearchUser[];
       resolve(users);
     } catch (error) {
       console.error("Failed to query users: ", error);
@@ -166,48 +278,161 @@ export const getSuggestedUsers = async (
   const ids = Array.from(new Set([currentUserId, ...excludeIds]));
   const excludeList = ids.map((id) => `"${id}"`).join(",");
 
-  let query = supabase
-    .from("user")
-    .select("uid, email, displayName, username, avatar_path, photoURL, bio")
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const data = await runUserOrderQuery((column) => {
+    let query = supabase
+      .from("user")
+      .select("uid, email, displayName, username, avatar_path, photoURL, bio")
+      .order(column, { ascending: false })
+      .limit(limit);
 
-  if (excludeList.length > 0) {
-    query = query.not("uid", "in", `(${excludeList})`);
-  }
+    if (excludeList.length > 0) {
+      query = query.not("uid", "in", `(${excludeList})`);
+    }
 
-  const { data, error } = await query;
+    return query;
+  });
 
-  if (error) {
-    throw error;
-  }
-
-  return (data || []).map((item) => ({ id: item.uid, ...item })) as SearchUser[];
+  return (data || []).map((item: any) => ({ id: item.uid, ...item })) as SearchUser[];
 };
 
-export const getFollowingIds = async (): Promise<string[]> => {
+export const getNewUsers = async (
+  currentUserId?: string,
+  limit = 12,
+): Promise<SearchUser[]> => {
+  const excludeIds = currentUserId ? [currentUserId] : [];
+  const data = await runUserOrderQuery((column) => {
+    let request = supabase
+      .from("user")
+      .select("uid, email, displayName, username, avatar_path, photoURL, bio")
+      .order(column, { ascending: false })
+      .limit(limit);
+
+    if (excludeIds.length > 0) {
+      const excludeList = excludeIds.map((id) => `"${id}"`).join(",");
+      request = request.not("uid", "in", `(${excludeList})`);
+    }
+
+    return request;
+  });
+
+  return (data || []).map((item: any) => ({ id: item.uid, ...item })) as SearchUser[];
+};
+
+export const getUsersPage = async ({
+  limit = 20,
+  offset = 0,
+  excludeIds = [],
+}: {
+  limit?: number;
+  offset?: number;
+  excludeIds?: string[];
+}): Promise<{ users: SearchUser[]; nextOffset: number | null }> => {
+  const data = await runUserOrderQuery((column) => {
+    let request = supabase
+      .from("user")
+      .select("uid, email, displayName, username, avatar_path, photoURL, bio")
+      .order(column, { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (excludeIds.length > 0) {
+      const excludeList = excludeIds.map((id) => `"${id}"`).join(",");
+      request = request.not("uid", "in", `(${excludeList})`);
+    }
+
+    return request;
+  });
+
+  const users = (data || []).map((item: any) => ({ id: item.uid, ...item })) as SearchUser[];
+  const nextOffset = users.length < limit ? null : offset + limit;
+
+  return { users, nextOffset };
+};
+
+export const getFollowingIds = async (userId?: string): Promise<string[]> => {
   try {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+    let resolvedUserId = userId;
 
-    if (error || !user) {
-      return [];
+    if (!resolvedUserId) {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        return [];
+      }
+      resolvedUserId = user.id;
     }
 
-    const { data, error: followingError } = await supabase
-      .from("following")
-      .select("following")
-      .eq("follower", user.id);
+    const { data, columns } = await runFollowQuery((cols) =>
+      supabase
+        .from("following")
+        .select(cols.following)
+        .eq(cols.follower, resolvedUserId),
+    );
 
-    if (followingError) {
-      throw followingError;
-    }
-
-    return (data || []).map((row) => row.following as string);
+    return (data || []).map((row: any) => row[columns.following] as string);
   } catch (error) {
     console.error("Failed to load following list: ", error);
+    return [];
+  }
+};
+
+export const getFollowerIds = async (userId?: string): Promise<string[]> => {
+  try {
+    let resolvedUserId = userId;
+
+    if (!resolvedUserId) {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        return [];
+      }
+      resolvedUserId = user.id;
+    }
+
+    const { data, columns } = await runFollowQuery((cols) =>
+      supabase
+        .from("following")
+        .select(cols.follower)
+        .eq(cols.following, resolvedUserId),
+    );
+
+    return (data || []).map((row: any) => row[columns.follower] as string);
+  } catch (error) {
+    console.error("Failed to load follower list: ", error);
+    return [];
+  }
+};
+
+export const getFriendIds = async (userId?: string): Promise<string[]> => {
+  try {
+    let resolvedUserId = userId;
+
+    if (!resolvedUserId) {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        return [];
+      }
+      resolvedUserId = user.id;
+    }
+
+    const [followingIds, followerIds] = await Promise.all([
+      getFollowingIds(resolvedUserId),
+      getFollowerIds(resolvedUserId),
+    ]);
+
+    const followersSet = new Set(followerIds);
+    return followingIds.filter((id) => followersSet.has(id));
+  } catch (error) {
+    console.error("Failed to load friend list: ", error);
     return [];
   }
 };
@@ -245,15 +470,13 @@ export const getUserById = async (id: string): Promise<User | null> => {
  */
 export const getIsFollowing = async (userId: string, otherUserId: string) => {
   try {
-    const { data, error } = await supabase
-      .from("following")
-      .select("follower")
-      .eq("follower", userId)
-      .eq("following", otherUserId);
-
-    if (error) {
-      throw error;
-    }
+    const { data } = await runFollowQuery((cols) =>
+      supabase
+        .from("following")
+        .select(cols.follower)
+        .eq(cols.follower, userId)
+        .eq(cols.following, otherUserId),
+    );
 
     return (data?.length || 0) > 0;
   } catch (error) {
@@ -292,20 +515,20 @@ export const changeFollowState = async ({
 
   try {
     if (isFollowing) {
-      const { error: deleteError } = await supabase
-        .from("following")
-        .delete()
-        .eq("follower", currentUserUid)
-        .eq("following", otherUserId);
-
-      if (deleteError) throw deleteError;
+      await runFollowQuery((cols) =>
+        supabase
+          .from("following")
+          .delete()
+          .eq(cols.follower, currentUserUid)
+          .eq(cols.following, otherUserId),
+      );
       return true;
     } else {
-      const { error: insertError } = await supabase
-        .from("following")
-        .insert({ follower: currentUserUid, following: otherUserId });
-
-      if (insertError) throw insertError;
+      await runFollowQuery((cols) =>
+        supabase
+          .from("following")
+          .insert({ [cols.follower]: currentUserUid, [cols.following]: otherUserId }),
+      );
       return true;
     }
   } catch (error) {

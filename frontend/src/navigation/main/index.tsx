@@ -11,15 +11,18 @@ import {
 } from "@react-navigation/native-stack";
 import AuthScreen from "../../screens/auth";
 import Landing from "../../screens/auth/Landing";
+import PinVerificationScreen from "../../screens/auth/PinVerification";
 import { RootState } from "../../redux/store";
 import HomeScreen from "../home";
 import {
   ActivityIndicator,
+  Image,
   ImageBackground,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import SavePostScreen from "../../screens/savePost";
 import EditProfileScreen from "../../screens/profile/edit";
 import EditProfileFieldScreen from "../../screens/profile/edit/field";
@@ -44,6 +47,7 @@ export type RootStackParamList = {
   landing: undefined;
   home: undefined;
   auth: undefined;
+  pinVerification: undefined;
   userPosts: { creator: string; profile: boolean };
   profileOther: { initialUserId: string };
   savePost: {
@@ -97,14 +101,29 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+  },
+  loadingSafe: {
+    flex: 1,
+  },
+  loadingContent: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.35)",
     padding: tokens.spacing.lg,
   },
+  loadingLogo: {
+    width: 92,
+    height: 92,
+    marginBottom: tokens.spacing.md,
+    shadowColor: "#000000",
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
   loadingText: {
-    marginTop: tokens.spacing.md,
+    marginTop: tokens.spacing.sm,
     color: tokens.colors.textMuted,
   },
 });
@@ -124,6 +143,11 @@ function UnauthedStack({
       <Stack.Screen
         name="auth"
         component={AuthScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="pinVerification"
+        component={PinVerificationScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
@@ -232,10 +256,18 @@ function LoadingScreen() {
       resizeMode="cover"
       style={styles.loadingContainer}
     >
-      <View style={styles.loadingOverlay}>
-        <ActivityIndicator color={tokens.colors.accent} />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
+      <View style={styles.loadingOverlay} />
+      <SafeAreaView style={styles.loadingSafe}>
+        <View style={styles.loadingContent}>
+          <Image
+            source={require("../../../assets/icon.png")}
+            style={styles.loadingLogo}
+            resizeMode="contain"
+          />
+          <ActivityIndicator color={tokens.colors.textMuted} />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
     </ImageBackground>
   );
 }

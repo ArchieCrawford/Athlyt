@@ -9,11 +9,13 @@ import {
 } from "react-native";
 import { RouteProp, useFocusEffect, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSelector } from "react-redux";
+import { useQuery } from "@tanstack/react-query";
 import { RootStackParamList } from "../../navigation/main";
 import { HomeStackParamList } from "../../navigation/home";
 import { FeedStackParamList } from "../../navigation/feed/types";
 import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/context";
-import { getFeed, getPostsByUserId } from "../../services/posts";
+import { getFeed, getPostsByCreators, getPostsByUserId } from "../../services/posts";
 import { Post } from "../../../types";
 import { useTheme } from "../../theme/useTheme";
 import AppText from "../../components/ui/AppText";
@@ -21,8 +23,11 @@ import Screen from "../../components/layout/Screen";
 import FeedItem, { FeedItemHandles } from "./FeedItem";
 import FeedHeaderTabs, { FeedTabKey } from "./components/FeedHeaderTabs";
 import { rankPosts } from "./ranker";
-import { getFollowingIds } from "../../services/user";
+import { getFollowingIds, getFriendIds } from "../../services/user";
 import { MaterialBottomTabNavigationProp } from "@react-navigation/material-bottom-tabs";
+import { RootState } from "../../redux/store";
+import { keys } from "../../hooks/queryKeys";
+import { trackEvent } from "../../services/algorithm";
 
 type FeedScreenRouteProp =
   | RouteProp<RootStackParamList, "userPosts">
@@ -45,6 +50,9 @@ export default function FeedScreen({
   const { setCurrentUserProfileItemInView } = useContext(
     CurrentUserProfileItemInViewContext,
   );
+  const currentUserId = useSelector(
+    (state: RootState) => state.auth.currentUser?.uid,
+  );
 
   const params = (route?.params ?? {}) as Partial<{
     creator: string;
@@ -61,7 +69,6 @@ export default function FeedScreen({
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTabKey>("For You");
-  const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [muted, setMuted] = useState(false);
   const mediaRefs = useRef<Record<string, FeedItemHandles | null>>({});
   const seenIdsRef = useRef<Set<string>>(new Set());
@@ -79,6 +86,18 @@ export default function FeedScreen({
     });
   }, []);
 
+  const { data: followingIds = [] } = useQuery({
+    queryKey: keys.followingIds(currentUserId ?? ""),
+    queryFn: () => getFollowingIds(currentUserId ?? undefined),
+    enabled: !!currentUserId && !profile,
+  });
+
+  const { data: friendIds = [] } = useQuery({
+    queryKey: keys.friendIds(currentUserId ?? ""),
+    queryFn: () => getFriendIds(currentUserId ?? undefined),
+    enabled: !!currentUserId && !profile,
+  });
+
   useFocusEffect(
     useCallback(() => {
       if (activePostIdRef.current) {
@@ -93,27 +112,29 @@ export default function FeedScreen({
   const fetchPosts = useCallback(async () => {
     try {
       setError(null);
-      const nextPosts = profile && creator
-        ? await getPostsByUserId(creator)
-        : await getFeed();
+      let nextPosts: Post[] = [];
+
+      if (profile && creator) {
+        nextPosts = await getPostsByUserId(creator);
+      } else if (activeTab === "Following") {
+        nextPosts = await getPostsByCreators(followingIds);
+      } else if (activeTab === "Friends") {
+        nextPosts = await getPostsByCreators(friendIds);
+      } else {
+        nextPosts = await getFeed();
+      }
+
       setPosts(nextPosts);
     } catch (err) {
       console.error("Failed to load feed", err);
       setError("Unable to load posts");
       setPosts([]);
     }
-  }, [creator, profile]);
+  }, [activeTab, creator, friendIds, followingIds, profile]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
-
-  useEffect(() => {
-    if (profile) {
-      return;
-    }
-    getFollowingIds().then(setFollowingIds).catch(() => setFollowingIds([]));
-  }, [profile]);
 
   useEffect(() => {
     if (profile) {
@@ -131,11 +152,15 @@ export default function FeedScreen({
   }, [profile]);
 
   useEffect(() => {
+    if (activeTab !== "For You") {
+      setRankedPosts(null);
+      return;
+    }
     if (!posts || !seenLoaded) {
       return;
     }
     setRankedPosts(rankPosts(posts, seenIdsRef.current));
-  }, [posts, seenLoaded]);
+  }, [activeTab, posts, seenLoaded]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -165,6 +190,7 @@ export default function FeedScreen({
 
       if (activeId && !seenIdsRef.current.has(activeId)) {
         seenIdsRef.current.add(activeId);
+        void trackEvent({ postId: activeId, eventType: "view" }).catch(() => {});
         AsyncStorage.setItem(
           "feed_seen_ids",
           JSON.stringify(Array.from(seenIdsRef.current)),
@@ -180,14 +206,11 @@ export default function FeedScreen({
     if (profile) {
       return posts;
     }
-    if (activeTab === "Following") {
-      return posts.filter((post) => followingIds.includes(post.creator));
+    if (activeTab === "For You") {
+      return rankedPosts ?? posts;
     }
-    if (activeTab === "Friends") {
-      return posts.filter((post) => followingIds.includes(post.creator));
-    }
-    return rankedPosts ?? posts;
-  }, [activeTab, followingIds, posts, profile, rankedPosts]);
+    return posts;
+  }, [activeTab, posts, profile, rankedPosts]);
 
   const emptyLabel = useMemo(() => {
     if (error) {
