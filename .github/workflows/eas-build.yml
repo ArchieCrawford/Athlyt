@@ -1,0 +1,40 @@
+name: EAS iOS Build
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-ios:
+    runs-on: ubuntu-latest
+    env:
+      EAS_SUBMIT: ${{ secrets.EAS_SUBMIT }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Expo/EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build iOS (production)
+        working-directory: frontend
+        run: eas build -p ios --profile production --non-interactive --no-wait
+
+      - name: Submit iOS (optional)
+        if: env.EAS_SUBMIT == 'true'
+        working-directory: frontend
+        run: eas submit -p ios --profile production --latest --non-interactive

@@ -18,6 +18,7 @@ import { HomeStackParamList } from "../../navigation/home";
 import { FeedStackParamList } from "../../navigation/feed/types";
 import { CurrentUserProfileItemInViewContext } from "../../navigation/feed/context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type FeedScreenRouteProp =
   | RouteProp<RootStackParamList, "userPosts">
@@ -41,11 +42,17 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
   const profile = params.profile ?? false;
 
   const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
   const viewportHeight = useMemo(() => {
-    return Math.round(windowHeight - tabBarHeight);
-  }, [windowHeight, tabBarHeight]);
+    const computed =
+      windowHeight - insets.top - insets.bottom - tabBarHeight;
+    return Math.max(1, Math.round(computed));
+  }, [insets.bottom, insets.top, tabBarHeight, windowHeight]);
+
+  const listPaddingTop = insets.top;
+  const listPaddingBottom = insets.bottom + tabBarHeight;
 
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +134,12 @@ export default function FeedScreen({ route }: { route: FeedScreenRouteProp }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: listPaddingTop, paddingBottom: listPaddingBottom },
+      ]}
+    >
       {posts === null ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color="white" />
