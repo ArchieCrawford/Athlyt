@@ -4,7 +4,7 @@ This is a placeholder document. Replace with your hosted Privacy Policy and keep
 
 Required steps:
 1) Finalize the Privacy Policy text (legal/README.md references your current drafts).
-2) Host it at a public URL (https://YOUR_DOMAIN/privacy).
+2) Host it at a public URL (https://mytayp.com/privacy).
 3) Set EXPO_PUBLIC_PRIVACY_URL to that URL.
 4) Paste the same URL into App Store Connect.
 

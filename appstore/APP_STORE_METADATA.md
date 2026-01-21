@@ -22,11 +22,11 @@ sports,athlete,highlights,recruiting,video,team,coach,training,fitness
 
 ## Support URL
 Replace with your support URL:
-https://YOUR_DOMAIN/support
+https://mytayp.com/support
 
 ## Marketing URL (optional)
 Replace with your marketing URL if you have one:
-https://YOUR_DOMAIN
+https://mytayp.com
 
 ## Copyright
 Copyright 2026 Tayp

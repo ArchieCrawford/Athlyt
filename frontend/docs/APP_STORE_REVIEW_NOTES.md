@@ -15,6 +15,6 @@
 
 ## Notes
 - If anything is “Coming soon,” it is labeled in-app.
-- Privacy Policy URL:
-- Terms of Service URL:
-- Support URL:
+- Privacy Policy URL: https://mytayp.com/privacy
+- Terms of Service URL: https://mytayp.com/terms
+- Support URL: https://mytayp.com/support
