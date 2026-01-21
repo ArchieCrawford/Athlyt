@@ -1,0 +1,9 @@
+{
+  "projects": [
+    {
+      "name": "tayp-dashboard",
+      "rootDirectory": "dashboard-admin",
+      "framework": "nextjs"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: tayp-backend
+    env: node
+    rootDir: backend/functions
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: "18.18.0"

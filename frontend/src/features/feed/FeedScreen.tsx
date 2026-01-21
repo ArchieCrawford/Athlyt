@@ -9,7 +9,6 @@ import {
 import {
   ActivityIndicator,
   FlatList,
-  LayoutChangeEvent,
   Pressable,
   RefreshControl,
   View,
@@ -38,6 +37,7 @@ import { RootState } from "../../redux/store";
 import { keys } from "../../hooks/queryKeys";
 import { trackEvent } from "../../services/algorithm";
 import { getBlockedUserIds } from "../../services/blocks";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type FeedScreenRouteProp =
   | RouteProp<RootStackParamList, "userPosts">
@@ -55,6 +55,7 @@ export default function FeedScreen({
 }) {
   const theme = useTheme();
   const { height, width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<MaterialBottomTabNavigationProp<HomeStackParamList>>();
   const { setCurrentUserProfileItemInView } = useContext(
@@ -67,10 +68,22 @@ export default function FeedScreen({
   const params = (route?.params ?? {}) as Partial<{
     creator: string;
     profile: boolean;
+    tabBarHeight: number;
   }>;
   const creator = params.creator ?? "";
   const profile = params.profile ?? false;
   const safeAreaEdges = profile ? ["bottom"] : [];
+  const tabBarHeight = params.tabBarHeight ?? 0;
+  const baseTabBarHeight = Math.max(0, tabBarHeight - insets.bottom);
+
+  const itemHeight = useMemo(() => {
+    const computed =
+      height - insets.top - insets.bottom - baseTabBarHeight;
+    return Math.max(1, Math.round(computed));
+  }, [baseTabBarHeight, height, insets.bottom, insets.top]);
+
+  const listPaddingTop = insets.top;
+  const listPaddingBottom = insets.bottom + baseTabBarHeight;
 
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [rankedPosts, setRankedPosts] = useState<Post[] | null>(null);
@@ -79,28 +92,12 @@ export default function FeedScreen({
   const [timedOut, setTimedOut] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTabKey>("For You");
   const [muted, setMuted] = useState(false);
-  const [listHeight, setListHeight] = useState(0);
   const mediaRefs = useRef<Record<string, FeedItemHandles | null>>({});
   const seenIdsRef = useRef<Set<string>>(new Set());
   const [seenLoaded, setSeenLoaded] = useState(false);
   const activePostIdRef = useRef<string | null>(null);
 
   const showTabs = !profile;
-  const resolvedListHeight = useMemo(
-    () => (listHeight > 0 ? listHeight : Math.round(height)),
-    [height, listHeight],
-  );
-
-  const handleListLayout = useCallback(
-    (event: LayoutChangeEvent) => {
-      const nextHeight = Math.round(event.nativeEvent.layout.height);
-      if (nextHeight > 0 && nextHeight !== listHeight) {
-        setListHeight(nextHeight);
-      }
-    },
-    [listHeight],
-  );
-
   const stopAllMedia = useCallback(() => {
     Object.values(mediaRefs.current).forEach((cell) => {
       cell?.stop();
@@ -295,7 +292,13 @@ export default function FeedScreen({
           onSearchPress={handleSearchPress}
         />
       ) : null}
-      <View style={{ flex: 1 }} onLayout={handleListLayout}>
+      <View
+        style={{
+          flex: 1,
+          paddingTop: listPaddingTop,
+          paddingBottom: listPaddingBottom,
+        }}
+      >
         {posts === null ? (
           <View
             style={{
@@ -365,7 +368,7 @@ export default function FeedScreen({
             renderItem={({ item }) => (
               <FeedItem
                 item={item}
-                height={resolvedListHeight}
+                height={itemHeight}
                 width={width}
                 muted={muted}
                 onToggleMute={() => setMuted((prev) => !prev)}
@@ -378,10 +381,10 @@ export default function FeedScreen({
             snapToAlignment="start"
             keyExtractor={(item) => item.id}
             decelerationRate="fast"
-            snapToInterval={resolvedListHeight}
+            snapToInterval={itemHeight}
             getItemLayout={(_, index) => ({
-              length: resolvedListHeight,
-              offset: resolvedListHeight * index,
+              length: itemHeight,
+              offset: itemHeight * index,
               index,
             })}
             onViewableItemsChanged={onViewableItemsChanged.current}
