@@ -1,7 +1,15 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   FlatList,
+  LayoutChangeEvent,
   Pressable,
   RefreshControl,
   View,
@@ -59,11 +67,9 @@ export default function FeedScreen({
   const params = (route?.params ?? {}) as Partial<{
     creator: string;
     profile: boolean;
-    tabBarHeight: number;
   }>;
   const creator = params.creator ?? "";
   const profile = params.profile ?? false;
-  const tabBarHeight = params.tabBarHeight ?? 0;
   const safeAreaEdges = profile ? ["bottom"] : [];
 
   const [posts, setPosts] = useState<Post[] | null>(null);
@@ -73,15 +79,27 @@ export default function FeedScreen({
   const [timedOut, setTimedOut] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTabKey>("For You");
   const [muted, setMuted] = useState(false);
+  const [listHeight, setListHeight] = useState(0);
   const mediaRefs = useRef<Record<string, FeedItemHandles | null>>({});
   const seenIdsRef = useRef<Set<string>>(new Set());
   const [seenLoaded, setSeenLoaded] = useState(false);
   const activePostIdRef = useRef<string | null>(null);
 
-  // Compute list height deterministically
   const showTabs = !profile;
-  const headerHeight = showTabs ? 52 : 0; // FeedHeaderTabs height
-  const listHeight = Math.round(height - tabBarHeight - headerHeight);
+  const resolvedListHeight = useMemo(
+    () => (listHeight > 0 ? listHeight : Math.round(height)),
+    [height, listHeight],
+  );
+
+  const handleListLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const nextHeight = Math.round(event.nativeEvent.layout.height);
+      if (nextHeight > 0 && nextHeight !== listHeight) {
+        setListHeight(nextHeight);
+      }
+    },
+    [listHeight],
+  );
 
   const stopAllMedia = useCallback(() => {
     Object.values(mediaRefs.current).forEach((cell) => {
@@ -277,7 +295,7 @@ export default function FeedScreen({
           onSearchPress={handleSearchPress}
         />
       ) : null}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} onLayout={handleListLayout}>
         {posts === null ? (
           <View
             style={{
@@ -347,7 +365,7 @@ export default function FeedScreen({
             renderItem={({ item }) => (
               <FeedItem
                 item={item}
-                height={listHeight}
+                height={resolvedListHeight}
                 width={width}
                 muted={muted}
                 onToggleMute={() => setMuted((prev) => !prev)}
@@ -360,10 +378,10 @@ export default function FeedScreen({
             snapToAlignment="start"
             keyExtractor={(item) => item.id}
             decelerationRate="fast"
-            snapToInterval={listHeight}
+            snapToInterval={resolvedListHeight}
             getItemLayout={(_, index) => ({
-              length: listHeight,
-              offset: listHeight * index,
+              length: resolvedListHeight,
+              offset: resolvedListHeight * index,
               index,
             })}
             onViewableItemsChanged={onViewableItemsChanged.current}
