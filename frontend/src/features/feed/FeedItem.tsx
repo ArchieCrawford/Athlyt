@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   Animated,
+  Alert,
   ImageBackground,
   Pressable,
   Share,
@@ -22,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 import { Post } from "../../../types";
 import { useTheme } from "../../theme/useTheme";
 import { useUser } from "../../hooks/useUser";
@@ -34,6 +36,10 @@ import { queryUsersByName } from "../../services/user";
 import ActionRail from "./components/ActionRail";
 import CaptionBlock from "./components/CaptionBlock";
 import { getMediaPublicUrl, getMuxThumbnail } from "../../utils/mediaUrls";
+import { blockUser } from "../../services/blocks";
+import { keys } from "../../hooks/queryKeys";
+import ActionSheet from "../../components/report/ActionSheet";
+import ReportSheet from "../../components/report/ReportSheet";
 
 export interface FeedItemHandles {
   play: () => void;
@@ -56,6 +62,7 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
     const navigation =
       useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const dispatch = useDispatch<AppDispatch>();
+    const queryClient = useQueryClient();
     const currentUserId = useSelector(
       (state: RootState) => state.auth.currentUser?.uid,
     );
@@ -66,6 +73,8 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
     const [bookmarkCount, setBookmarkCount] = useState(
       item.bookmarksCount || 0,
     );
+    const [optionsOpen, setOptionsOpen] = useState(false);
+    const [reportOpen, setReportOpen] = useState(false);
 
     const heartScale = useRef(new Animated.Value(0.6)).current;
     const heartOpacity = useRef(new Animated.Value(0)).current;
@@ -153,6 +162,38 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
       Share.share({
         message: "Check this out on Tayp",
       }).catch(() => {});
+    };
+
+    const handleFollow = () => {
+      Alert.alert("Coming soon", "Following from the feed is coming soon.");
+    };
+
+    const handleBlock = () => {
+      if (!currentUserId) {
+        Alert.alert("Sign in required", "Please sign in to block users.");
+        return;
+      }
+      Alert.alert(
+        "Block user",
+        "You will no longer see posts from this user.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Block",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await blockUser(item.creator);
+                queryClient.invalidateQueries({
+                  queryKey: keys.blockedUsers(currentUserId),
+                });
+              } catch (error) {
+                console.error("Failed to block user", error);
+              }
+            },
+          },
+        ],
+      );
     };
 
     const handleMentionPress = async (handle: string) => {
@@ -403,11 +444,13 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
                 onComment={handleComment}
                 onShare={handleShare}
                 onBookmark={handleBookmark}
+                onMorePress={() => setOptionsOpen(true)}
                 onAvatarPress={() =>
                   navigation.navigate("profileOther", {
                     initialUserId: item.creator,
                   })
                 }
+                onFollowPress={handleFollow}
               />
             </View>
 
@@ -427,6 +470,35 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
         ) : (
           <View style={styles.media} />
         )}
+        <ActionSheet
+          visible={optionsOpen}
+          onClose={() => setOptionsOpen(false)}
+          title="Post options"
+          items={[
+            {
+              label: "Report post",
+              onPress: () => {
+                setOptionsOpen(false);
+                setReportOpen(true);
+              },
+            },
+            {
+              label: "Block user",
+              destructive: true,
+              onPress: () => {
+                setOptionsOpen(false);
+                handleBlock();
+              },
+            },
+          ]}
+        />
+        <ReportSheet
+          visible={reportOpen}
+          targetType="post"
+          targetId={item.id}
+          title="Report post"
+          onClose={() => setReportOpen(false)}
+        />
       </View>
     );
   },

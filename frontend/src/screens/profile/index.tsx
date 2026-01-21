@@ -19,9 +19,12 @@ import { supabase } from "../../../supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
-import { getScheduledPosts } from "../../services/scheduledPosts";
 import { keys } from "../../hooks/queryKeys";
 import AppText from "../../components/ui/AppText";
+import { useQueryClient } from "@tanstack/react-query";
+import { getBlockedUserIds, blockUser, unblockUser } from "../../services/blocks";
+import ReportSheet from "../../components/report/ReportSheet";
+import Button from "../../components/ui/Button";
 
 type ProfileScreenRouteProp =
   | RouteProp<RootStackParamList, "profileOther">
@@ -39,10 +42,13 @@ export default function ProfileScreen({
   const { initialUserId } = route.params;
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const isFocused = useIsFocused();
+  const [profileTimedOut, setProfileTimedOut] = useState(false);
   const currentUserId = useSelector(
     (state: RootState) => state.auth.currentUser?.uid,
   );
+  const queryClient = useQueryClient();
 
   const providerUserId = useContext(CurrentUserProfileItemInViewContext);
 
@@ -53,29 +59,42 @@ export default function ProfileScreen({
   const user = userQuery.data;
   const isSelf = !!currentUserId && user?.uid === currentUserId;
 
-  const { data: scheduledPosts = [], isLoading: scheduledLoading } = useQuery({
-    queryKey: keys.scheduledPosts(currentUserId ?? ""),
-    queryFn: () => getScheduledPosts(currentUserId ?? ""),
-    enabled: isSelf,
+  const { data: blockedUserIds = [] } = useQuery({
+    queryKey: keys.blockedUsers(currentUserId ?? ""),
+    queryFn: () => getBlockedUserIds(currentUserId ?? undefined),
+    enabled: !!currentUserId,
   });
 
+  const isBlocked = !isSelf && !!user?.uid && blockedUserIds.includes(user.uid);
+
   useEffect(() => {
-    if (!user) {
+    if (!userQuery.isLoading) {
+      setProfileTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setProfileTimedOut(true);
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [userQuery.isLoading]);
+
+  useEffect(() => {
+    if (!user || isBlocked) {
       return;
     }
 
     getPostsByUserId(user?.uid).then((posts) => setUserPosts(posts));
-  }, [user]);
+  }, [isBlocked, user]);
 
   useEffect(() => {
-    if (!user || !isFocused) {
+    if (!user || !isFocused || isBlocked) {
       return;
     }
     getPostsByUserId(user.uid).then((posts) => setUserPosts(posts));
-  }, [isFocused, user]);
+  }, [isBlocked, isFocused, user]);
 
   useEffect(() => {
-    if (!user || !isFocused) {
+    if (!user || !isFocused || isBlocked) {
       return;
     }
     const hasPendingVideo = userPosts.some(
@@ -90,10 +109,66 @@ export default function ProfileScreen({
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [isFocused, user, userPosts]);
+  }, [isBlocked, isFocused, user, userPosts]);
 
-  if (!user) {
-    return null;
+  if (userQuery.isLoading) {
+    return (
+      <Screen padding={false} safeAreaEdges={["bottom"]}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: theme.spacing.lg,
+            gap: theme.spacing.sm,
+          }}
+        >
+          <AppText variant="subtitle">
+            {profileTimedOut ? "Profile is taking a while" : "Loading profile"}
+          </AppText>
+          <AppText variant="muted" style={{ textAlign: "center" }}>
+            {profileTimedOut
+              ? "Check your connection and try again."
+              : "Hang tight while we load this profile."}
+          </AppText>
+          {profileTimedOut ? (
+            <Button
+              title="Retry"
+              variant="secondary"
+              fullWidth={false}
+              onPress={() => userQuery.refetch()}
+            />
+          ) : null}
+        </View>
+      </Screen>
+    );
+  }
+
+  if (userQuery.isError || !user) {
+    return (
+      <Screen padding={false} safeAreaEdges={["bottom"]}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: theme.spacing.lg,
+            gap: theme.spacing.sm,
+          }}
+        >
+          <AppText variant="subtitle">Profile unavailable</AppText>
+          <AppText variant="muted" style={{ textAlign: "center" }}>
+            Please try again later.
+          </AppText>
+          <Button
+            title="Retry"
+            variant="secondary"
+            fullWidth={false}
+            onPress={() => userQuery.refetch()}
+          />
+        </View>
+      </Screen>
+    );
   }
 
   const handleLogout = async () => {
@@ -103,9 +178,53 @@ export default function ProfileScreen({
     }
   };
 
+  const handleBlockToggle = async () => {
+    if (!user?.uid) {
+      return;
+    }
+    try {
+      if (isBlocked) {
+        await unblockUser(user.uid);
+      } else {
+        await blockUser(user.uid);
+      }
+      queryClient.invalidateQueries({
+        queryKey: keys.blockedUsers(currentUserId ?? ""),
+      });
+    } catch (error) {
+      console.error("Failed to update block state", error);
+      Alert.alert("Action failed", "Please try again.");
+    }
+  };
+
   return (
     <Screen padding={false} safeAreaEdges={["bottom"]}>
       <ProfileNavBar user={user} onMenuPress={() => setMenuOpen(true)} />
+      {isBlocked ? (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: theme.spacing.lg,
+            gap: theme.spacing.md,
+          }}
+        >
+          <AppText variant="subtitle">You blocked this user.</AppText>
+          <AppText
+            variant="muted"
+            style={{ textAlign: "center" }}
+          >
+            Unblock them to see their profile and posts.
+          </AppText>
+          <Button
+            title="Unblock user"
+            variant="secondary"
+            fullWidth={false}
+            onPress={handleBlockToggle}
+          />
+        </View>
+      ) : (
       <ScrollView
         contentContainerStyle={{
           paddingBottom: theme.spacing.xl,
@@ -113,81 +232,60 @@ export default function ProfileScreen({
         showsVerticalScrollIndicator={false}
       >
         <ProfileHeader user={user} />
-        {isSelf ? (
-          <View
-            style={{
-              paddingHorizontal: theme.spacing.lg,
-              paddingTop: theme.spacing.md,
-            }}
-          >
-            <AppText variant="subtitle">Scheduled</AppText>
-            {scheduledLoading ? (
-              <AppText
-                variant="muted"
-                style={{ marginTop: theme.spacing.xs }}
-              >
-                Loading scheduled posts...
-              </AppText>
-            ) : scheduledPosts.length === 0 ? (
-              <AppText
-                variant="muted"
-                style={{ marginTop: theme.spacing.xs }}
-              >
-                No scheduled posts.
-              </AppText>
-            ) : (
-              <View style={{ marginTop: theme.spacing.sm, gap: theme.spacing.sm }}>
-                {scheduledPosts.map((post) => {
-                  const description =
-                    typeof post.payload?.description === "string"
-                      ? post.payload.description
-                      : "";
-                  const runAtLabel = new Date(post.run_at).toLocaleString();
-                  const statusLabel =
-                    post.status.charAt(0).toUpperCase() + post.status.slice(1);
-
-                  return (
-                    <View
-                      key={post.id}
-                      style={{
-                        backgroundColor: theme.colors.surface2,
-                        padding: theme.spacing.md,
-                        borderRadius: theme.radius.md,
-                      }}
-                    >
-                      <AppText
-                        variant="caption"
-                        style={{ color: theme.colors.textMuted }}
-                      >
-                        {statusLabel} · {runAtLabel}
-                      </AppText>
-                      <AppText variant="body" numberOfLines={2}>
-                        {description || "No description"}
-                      </AppText>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-        ) : null}
         <View style={{ paddingHorizontal: theme.spacing.lg }}>
           <ProfilePostList posts={userPosts} />
         </View>
       </ScrollView>
+      )}
       <ProfileMenuSheet
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
-        items={[
-          { label: "Settings and privacy", icon: "settings", route: "settings" },
-          { label: "Saved", icon: "bookmark", route: "Saved" },
-          { label: "QR code", icon: "grid", route: "ProfileQr" },
-          { label: "Activity center", icon: "activity", route: "ActivityCenter" },
-          { label: "Logout", icon: "log-out", onPress: handleLogout },
-        ]}
+        items={
+          isSelf
+            ? [
+                {
+                  label: "Settings and privacy",
+                  icon: "settings",
+                  route: "settings",
+                },
+                { label: "Saved", icon: "bookmark", route: "Saved" },
+                {
+                  label: "Legal",
+                  icon: "file-text",
+                  onPress: () =>
+                    navigation.navigate("settings", { screen: "Legal" }),
+                },
+                { label: "QR code", icon: "grid", route: "ProfileQr" },
+                {
+                  label: "Activity center",
+                  icon: "activity",
+                  route: "ActivityCenter",
+                },
+                { label: "Logout", icon: "log-out", onPress: handleLogout },
+              ]
+            : [
+                {
+                  label: "Report user",
+                  icon: "alert-triangle",
+                  onPress: () => setReportOpen(true),
+                },
+                {
+                  label: isBlocked ? "Unblock user" : "Block user",
+                  icon: isBlocked ? "unlock" : "slash",
+                  onPress: handleBlockToggle,
+                },
+              ]
+        }
         onSelect={(routeName) =>
           navigation.navigate(routeName as keyof RootStackParamList)
         }
+      />
+      <ReportSheet
+        visible={reportOpen}
+        targetType="user"
+        targetId={user.uid}
+        title="Report user"
+        onClose={() => setReportOpen(false)}
       />
     </Screen>
   );

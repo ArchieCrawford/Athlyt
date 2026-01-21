@@ -22,4 +22,5 @@ export const keys = {
   messages: (chatId: string) => ["messages", chatId],
   apiKeys: (userId: string) => ["api-keys", userId],
   scheduledPosts: (userId: string) => ["scheduled-posts", userId],
+  blockedUsers: (userId: string) => ["blocked-users", userId],
 };

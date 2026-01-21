@@ -298,8 +298,11 @@ export const getSuggestedUsers = async (
 export const getNewUsers = async (
   currentUserId?: string,
   limit = 12,
+  excludeIds: string[] = [],
 ): Promise<SearchUser[]> => {
-  const excludeIds = currentUserId ? [currentUserId] : [];
+  const ids = Array.from(
+    new Set([...(currentUserId ? [currentUserId] : []), ...excludeIds]),
+  );
   const data = await runUserOrderQuery((column) => {
     let request = supabase
       .from("user")
@@ -307,8 +310,8 @@ export const getNewUsers = async (
       .order(column, { ascending: false })
       .limit(limit);
 
-    if (excludeIds.length > 0) {
-      const excludeList = excludeIds.map((id) => `"${id}"`).join(",");
+    if (ids.length > 0) {
+      const excludeList = ids.map((id) => `"${id}"`).join(",");
       request = request.not("uid", "in", `(${excludeList})`);
     }
 

@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "r
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   View,
   ViewToken,
@@ -28,6 +29,7 @@ import { MaterialBottomTabNavigationProp } from "@react-navigation/material-bott
 import { RootState } from "../../redux/store";
 import { keys } from "../../hooks/queryKeys";
 import { trackEvent } from "../../services/algorithm";
+import { getBlockedUserIds } from "../../services/blocks";
 
 type FeedScreenRouteProp =
   | RouteProp<RootStackParamList, "userPosts">
@@ -68,6 +70,7 @@ export default function FeedScreen({
   const [rankedPosts, setRankedPosts] = useState<Post[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTabKey>("For You");
   const [muted, setMuted] = useState(false);
   const mediaRefs = useRef<Record<string, FeedItemHandles | null>>({});
@@ -98,6 +101,12 @@ export default function FeedScreen({
     enabled: !!currentUserId && !profile,
   });
 
+  const { data: blockedUserIds = [] } = useQuery({
+    queryKey: keys.blockedUsers(currentUserId ?? ""),
+    queryFn: () => getBlockedUserIds(currentUserId ?? undefined),
+    enabled: !!currentUserId && !profile,
+  });
+
   useFocusEffect(
     useCallback(() => {
       if (activePostIdRef.current) {
@@ -117,11 +126,17 @@ export default function FeedScreen({
       if (profile && creator) {
         nextPosts = await getPostsByUserId(creator);
       } else if (activeTab === "Following") {
-        nextPosts = await getPostsByCreators(followingIds);
+        const filtered = followingIds.filter(
+          (id) => !blockedUserIds.includes(id),
+        );
+        nextPosts = await getPostsByCreators(filtered);
       } else if (activeTab === "Friends") {
-        nextPosts = await getPostsByCreators(friendIds);
+        const filtered = friendIds.filter(
+          (id) => !blockedUserIds.includes(id),
+        );
+        nextPosts = await getPostsByCreators(filtered);
       } else {
-        nextPosts = await getFeed();
+        nextPosts = await getFeed({ excludeCreatorIds: blockedUserIds });
       }
 
       setPosts(nextPosts);
@@ -130,11 +145,22 @@ export default function FeedScreen({
       setError("Unable to load posts");
       setPosts([]);
     }
-  }, [activeTab, creator, friendIds, followingIds, profile]);
+  }, [activeTab, blockedUserIds, creator, friendIds, followingIds, profile]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  useEffect(() => {
+    if (posts !== null) {
+      setTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [posts]);
 
   useEffect(() => {
     if (profile) {
@@ -261,7 +287,31 @@ export default function FeedScreen({
               backgroundColor: theme.colors.bg,
             }}
           >
-            <ActivityIndicator size="large" color={theme.colors.accent} />
+            {timedOut ? (
+              <View style={{ alignItems: "center", gap: theme.spacing.sm }}>
+                <AppText variant="subtitle">Feed is taking a while</AppText>
+                <AppText variant="muted" style={{ textAlign: "center" }}>
+                  Please check your connection and try again.
+                </AppText>
+                <Pressable
+                  onPress={fetchPosts}
+                  style={({ pressed }) => [
+                    {
+                      marginTop: theme.spacing.sm,
+                      paddingVertical: theme.spacing.sm,
+                      paddingHorizontal: theme.spacing.lg,
+                      borderRadius: theme.radius.md,
+                      backgroundColor: theme.colors.surface2,
+                    },
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <AppText>Retry</AppText>
+                </Pressable>
+              </View>
+            ) : (
+              <ActivityIndicator size="large" color={theme.colors.accent} />
+            )}
           </View>
         ) : visiblePosts.length === 0 ? (
           <View

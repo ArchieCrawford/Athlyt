@@ -33,14 +33,21 @@ export const ensurePosterUrlForPost = async (post: Post): Promise<Post> => {
  * @returns {Promise<[<Post>]>} post list if successful.
  */
 
-export const getFeed = async (): Promise<Post[]> => {
+export const getFeed = async ({
+  excludeCreatorIds = [],
+}: { excludeCreatorIds?: string[] } = {}): Promise<Post[]> => {
+  const excludeSet = excludeCreatorIds.length
+    ? new Set(excludeCreatorIds)
+    : null;
   try {
     const rankedIds = await rankFeed({ limit: 40 });
     if (rankedIds.length > 0) {
-      const { data, error } = await supabase
-        .from("post")
-        .select("*")
-        .in("id", rankedIds);
+      let request = supabase.from("post").select("*").in("id", rankedIds);
+      if (excludeCreatorIds.length > 0) {
+        const excludeList = excludeCreatorIds.map((id) => `"${id}"`).join(",");
+        request = request.not("creator", "in", `(${excludeList})`);
+      }
+      const { data, error } = await request;
 
       if (!error) {
         const orderMap = new Map(
@@ -51,8 +58,12 @@ export const getFeed = async (): Promise<Post[]> => {
             (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0),
         );
 
+        const filtered = excludeSet
+          ? ordered.filter((item) => !excludeSet.has(item.creator))
+          : ordered;
+
         return await Promise.all(
-          ordered.map(async (item) =>
+          filtered.map(async (item) =>
             ensurePosterUrlForPost({
               id: item.id,
               ...item,
@@ -66,18 +77,29 @@ export const getFeed = async (): Promise<Post[]> => {
     console.warn("Ranked feed unavailable, falling back.", error);
   }
 
-  const { data, error } = await supabase
+  let request = supabase
     .from("post")
     .select("*")
     .order("creation", { ascending: false });
+
+  if (excludeCreatorIds.length > 0) {
+    const excludeList = excludeCreatorIds.map((id) => `"${id}"`).join(",");
+    request = request.not("creator", "in", `(${excludeList})`);
+  }
+
+  const { data, error } = await request;
 
   if (error) {
     console.error("Failed to get feed: ", error);
     throw error;
   }
 
+  const filtered = excludeSet
+    ? (data || []).filter((item) => !excludeSet.has(item.creator))
+    : data || [];
+
   return await Promise.all(
-    (data || []).map(async (item) =>
+    filtered.map(async (item) =>
       ensurePosterUrlForPost({
         id: item.id,
         ...item,

@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
-  View,
-  StyleSheet,
-  ScrollView,
   Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import ChatListItem from "../../../components/chat/list/item";
 import { useSelector } from "react-redux";
@@ -24,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queryUsersByName } from "../../../services/user";
 import { findOrCreateChat } from "../../../services/chat";
 import { keys } from "../../../hooks/queryKeys";
+import { getBlockedUserIds } from "../../../services/blocks";
 
 const ChatScreen = () => {
   const chats = useSelector((state: RootState) => state.chat.list);
@@ -37,11 +39,23 @@ const ChatScreen = () => {
   const [composerQuery, setComposerQuery] = useState("");
   const [creatingChat, setCreatingChat] = useState(false);
 
+  const { data: blockedUserIds = [] } = useQuery({
+    queryKey: keys.blockedUsers(currentUserId ?? ""),
+    queryFn: () => getBlockedUserIds(currentUserId ?? undefined),
+    enabled: !!currentUserId,
+  });
+
   const trimmedQuery = composerQuery.trim();
   const { data: searchResults = [], isFetching: searchLoading } = useQuery({
-    queryKey: keys.userSearch(trimmedQuery, currentUserId ?? ""),
+    queryKey: keys.userSearch(
+      trimmedQuery,
+      [currentUserId ?? "", blockedUserIds.join(",")].join("|"),
+    ),
     queryFn: () =>
-      queryUsersByName(trimmedQuery, currentUserId ? [currentUserId] : []),
+      queryUsersByName(
+        trimmedQuery,
+        currentUserId ? [currentUserId, ...blockedUserIds] : blockedUserIds,
+      ),
     enabled: composerOpen && trimmedQuery.length > 0,
   });
 
@@ -143,10 +157,25 @@ const ChatScreen = () => {
       navigation.navigate("chatSingle", { chatId: chat.id, contactId: user.uid });
     } catch (error) {
       console.error("Failed to start chat", error);
+      const message =
+        error instanceof Error ? error.message : "Unable to start chat.";
+      Alert.alert("Chat unavailable", message);
     } finally {
       setCreatingChat(false);
     }
   };
+
+  const visibleChats = useMemo(() => {
+    if (!currentUserId || blockedUserIds.length === 0) {
+      return chats;
+    }
+    return chats.filter((chat) => {
+      const otherMembers = (chat.members || []).filter(
+        (member) => member !== currentUserId,
+      );
+      return !otherMembers.some((member) => blockedUserIds.includes(member));
+    });
+  }, [blockedUserIds, chats, currentUserId]);
 
   const renderItem = ({ item }: { item: Chat }) => {
     return <ChatListItem chat={item} />;
@@ -258,12 +287,20 @@ const ChatScreen = () => {
         </View>
 
         <View style={styles.sections}>
-          <Pressable style={styles.sectionRow}>
+          <Pressable
+            style={styles.sectionRow}
+            onPress={() =>
+              Alert.alert("Coming soon", "New followers is coming soon.")
+            }
+          >
             <AppText variant="body">New followers</AppText>
             <Feather name="chevron-right" size={18} color={theme.colors.text} />
           </Pressable>
           <View style={styles.divider} />
-          <Pressable style={styles.sectionRow}>
+          <Pressable
+            style={styles.sectionRow}
+            onPress={() => Alert.alert("Coming soon", "Activity is coming soon.")}
+          >
             <AppText variant="body">Activity</AppText>
             <Feather name="chevron-right" size={18} color={theme.colors.text} />
           </Pressable>
@@ -273,7 +310,7 @@ const ChatScreen = () => {
           <AppText variant="subtitle" style={{ marginBottom: theme.spacing.sm }}>
             Messages
           </AppText>
-          {chats.length === 0 ? (
+          {visibleChats.length === 0 ? (
             <View style={styles.emptyCard}>
               <AppText variant="body">No messages yet</AppText>
               <AppText variant="muted" style={{ textAlign: "center" }}>
@@ -282,7 +319,7 @@ const ChatScreen = () => {
             </View>
           ) : (
             <FlatList
-              data={chats}
+              data={visibleChats}
               removeClippedSubviews
               renderItem={renderItem}
               keyExtractor={(item) => item.id}

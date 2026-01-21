@@ -46,6 +46,7 @@ interface ActionRailProps {
   onComment?: () => void;
   onShare?: () => void;
   onBookmark?: () => void;
+  onMorePress?: () => void;
   onAvatarPress?: () => void;
   onFollowPress?: () => void;
   style?: StyleProp<ViewStyle>;
@@ -64,6 +65,7 @@ export default function ActionRail({
   onComment,
   onShare,
   onBookmark,
+  onMorePress,
   onAvatarPress,
   onFollowPress,
   style,
@@ -142,6 +144,13 @@ export default function ActionRail({
         label={sharesLabel}
         icon={<Feather name="send" size={22} color={theme.colors.text} />}
       />
+      {onMorePress ? (
+        <ActionButton
+          onPress={onMorePress}
+          label="More"
+          icon={<Feather name="more-vertical" size={22} color={theme.colors.text} />}
+        />
+      ) : null}
     </View>
   );
 }

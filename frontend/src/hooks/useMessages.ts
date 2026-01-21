@@ -10,6 +10,7 @@ export const useMessages = (chatId?: string, contactId?: string) => {
 
   const [chatIdInst, setChatIdInst] = useState(chatId);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const handleMessagesChange = useCallback((items: Message[]) => {
     setMessages(items);
@@ -43,9 +44,15 @@ export const useMessages = (chatId?: string, contactId?: string) => {
         const createdChat = await findOrCreateChat(contactId);
         if (isMounted) {
           setChatIdInst(createdChat.id);
+          setError(null);
         }
       } catch (error) {
         console.error("Failed to create chat", error);
+        if (isMounted) {
+          setError(
+            error instanceof Error ? error.message : "Unable to open chat.",
+          );
+        }
       }
     };
 
@@ -63,5 +70,5 @@ export const useMessages = (chatId?: string, contactId?: string) => {
     };
   }, [handleMessagesChange, currentUser, chatIdInst, contactId, chats]);
 
-  return { messages, chatIdInst };
+  return { messages, chatIdInst, error };
 };

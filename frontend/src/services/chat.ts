@@ -1,5 +1,6 @@
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../../supabaseClient";
+import { getBlockedUserIds, isUserBlocked } from "./blocks";
 import { Chat, Message } from "../../types";
 
 let chatsChannel: RealtimeChannel | null = null;
@@ -16,7 +17,21 @@ export const chatsListener = async (
       .order("lastUpdate", { ascending: false });
 
     if (!error && data) {
-      listener(data as Chat[]);
+      let filtered = data as Chat[];
+      try {
+        const blockedIds = await getBlockedUserIds(userId);
+        if (blockedIds.length > 0) {
+          filtered = filtered.filter((chat) => {
+            const otherMembers = (chat.members || []).filter(
+              (member) => member !== userId,
+            );
+            return !otherMembers.some((member) => blockedIds.includes(member));
+          });
+        }
+      } catch (blockError) {
+        console.error("Failed to load blocked users", blockError);
+      }
+      listener(filtered);
     }
   };
 
@@ -99,6 +114,24 @@ export const sendMessage = async (chatId: string, message: string) => {
     throw new Error("User is not authenticated");
   }
 
+  const { data: chat, error: chatError } = await supabase
+    .from("chats")
+    .select("members")
+    .eq("id", chatId)
+    .single();
+
+  if (chatError) {
+    throw chatError;
+  }
+
+  const otherMember = (chat?.members || []).find((id) => id !== user.id);
+  if (otherMember) {
+    const blocked = await isUserBlocked(otherMember, user.id);
+    if (blocked) {
+      throw new Error("You blocked this user.");
+    }
+  }
+
   const { error } = await supabase.from("messages").insert({
     chat_id: chatId,
     creator: user.id,
@@ -141,6 +174,11 @@ export const createChat = async (
         throw new Error("User is not authenticated");
       }
       resolvedUserId = user.id;
+    }
+
+    const blocked = await isUserBlocked(contactId, resolvedUserId);
+    if (blocked) {
+      throw new Error("You blocked this user.");
     }
 
     const { data: chatData, error: chatError } = await supabase
@@ -190,6 +228,11 @@ export const findOrCreateChat = async (contactId: string) => {
 
   if (error || !user) {
     throw new Error("User is not authenticated");
+  }
+
+  const blocked = await isUserBlocked(contactId, user.id);
+  if (blocked) {
+    throw new Error("You blocked this user.");
   }
 
   const existingChat = await findChatByMembers(user.id, contactId);

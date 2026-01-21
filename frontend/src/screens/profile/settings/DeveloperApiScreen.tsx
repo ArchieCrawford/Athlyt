@@ -1,4 +1,13 @@
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
@@ -8,6 +17,7 @@ import { useTheme } from "../../../theme/useTheme";
 import { RootState } from "../../../redux/store";
 import { keys } from "../../../hooks/queryKeys";
 import { createApiKey, listApiKeys, revokeApiKey } from "../../../services/apiKeys";
+import { supabase } from "../../../../supabaseClient";
 
 const formatDate = (value?: string | null) => {
   if (!value) {
@@ -35,11 +45,32 @@ export default function DeveloperApiScreen() {
   const [label, setLabel] = useState("");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const supportEmail = "archie.crawford1@gmail.com";
+
+  const { data: isAdmin = false, isLoading: adminLoading } = useQuery({
+    queryKey: ["admin-status", ownerId ?? ""],
+    queryFn: async () => {
+      if (!ownerId) {
+        return false;
+      }
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select("uid")
+        .eq("uid", ownerId)
+        .maybeSingle();
+      if (error) {
+        console.error("Failed to check admin status", error);
+        return false;
+      }
+      return !!data;
+    },
+    enabled: !!ownerId,
+  });
 
   const { data: apiKeys = [], isLoading } = useQuery({
     queryKey: keys.apiKeys(ownerId ?? ""),
     queryFn: () => listApiKeys(ownerId ?? ""),
-    enabled: !!ownerId,
+    enabled: !!ownerId && isAdmin,
   });
 
   const createMutation = useMutation({
@@ -80,6 +111,20 @@ export default function DeveloperApiScreen() {
       return;
     }
     Alert.alert("Copy key", "Press and hold the key to copy.");
+  };
+
+  const handleRequestAccess = async () => {
+    const subject = encodeURIComponent("Tayp API access request");
+    const mailto = `mailto:${supportEmail}?subject=${subject}`;
+    const canOpen = await Linking.canOpenURL(mailto);
+    if (!canOpen) {
+      Alert.alert(
+        "Request access",
+        `Email us at ${supportEmail} to request API access.`,
+      );
+      return;
+    }
+    await Linking.openURL(mailto);
   };
 
   const styles = useMemo(
@@ -132,6 +177,18 @@ export default function DeveloperApiScreen() {
           alignItems: "center",
         },
         createButtonText: {
+          color: "#ffffff",
+          fontWeight: "700",
+        },
+        requestButton: {
+          marginTop: theme.spacing.md,
+          marginHorizontal: theme.spacing.lg,
+          paddingVertical: theme.spacing.md,
+          borderRadius: 12,
+          backgroundColor: theme.colors.accent,
+          alignItems: "center",
+        },
+        requestButtonText: {
           color: "#ffffff",
           fontWeight: "700",
         },
@@ -202,92 +259,131 @@ export default function DeveloperApiScreen() {
 
   return (
     <Screen scroll padding={false} style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionTitle}>Create API key</Text>
-      <Text style={[styles.helper, { marginBottom: theme.spacing.sm }]}>
-        Label your key so you can recognize it later.
-      </Text>
-      <TextInput
-        value={label}
-        onChangeText={setLabel}
-        placeholder="Key label"
-        placeholderTextColor="#9AA3B2"
-        style={styles.input}
-      />
-      <Pressable
-        style={({ pressed }) => [
-          styles.createButton,
-          { opacity: pressed || createMutation.isPending ? 0.7 : 1 },
-        ]}
-        onPress={() => createMutation.mutate()}
-        disabled={createMutation.isPending || !ownerId}
-      >
-        <Text style={styles.createButtonText}>
-          {createMutation.isPending ? "Creating..." : "Create key"}
-        </Text>
-      </Pressable>
-
-      {createdKey ? (
+      {adminLoading ? (
+        <View style={styles.sectionCard}>
+          <View style={styles.keyItem}>
+            <ActivityIndicator color={theme.colors.textMuted} />
+            <Text style={styles.keyMeta}>Checking access...</Text>
+          </View>
+        </View>
+      ) : isAdmin ? (
         <>
-          <Text style={styles.sectionTitle}>New key</Text>
-          <View style={styles.keyCard}>
-            <View style={styles.keyRow}>
-              <Text style={styles.keyValue} selectable>
-                {createdKey}
-              </Text>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.copyButton,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-                onPress={handleCopy}
-              >
-                <Feather name="copy" size={16} color="#111111" />
-              </Pressable>
-            </View>
-            <Text style={styles.copyLabel}>
-              {copied ? "Copied." : "Save this key now. You will not see it again."}
+          <Text style={styles.sectionTitle}>Create API key</Text>
+          <Text style={[styles.helper, { marginBottom: theme.spacing.sm }]}>
+            Label your key so you can recognize it later.
+          </Text>
+          <TextInput
+            value={label}
+            onChangeText={setLabel}
+            placeholder="Key label"
+            placeholderTextColor="#9AA3B2"
+            style={styles.input}
+          />
+          <Pressable
+            style={({ pressed }) => [
+              styles.createButton,
+              { opacity: pressed || createMutation.isPending ? 0.7 : 1 },
+            ]}
+            onPress={() => createMutation.mutate()}
+            disabled={createMutation.isPending || !ownerId}
+          >
+            <Text style={styles.createButtonText}>
+              {createMutation.isPending ? "Creating..." : "Create key"}
             </Text>
-          </View>
-        </>
-      ) : null}
+          </Pressable>
 
-      <Text style={styles.sectionTitle}>Your keys</Text>
-      <View style={styles.sectionCard}>
-        {isLoading ? (
-          <View style={styles.keyItem}>
-            <Text style={styles.keyMeta}>Loading keys...</Text>
-          </View>
-        ) : apiKeys.length === 0 ? (
-          <View style={styles.keyItem}>
-            <Text style={styles.keyMeta}>No API keys yet.</Text>
-          </View>
-        ) : (
-          apiKeys.map((key, index) => (
-            <View
-              key={key.id}
-              style={[styles.keyItem, index === apiKeys.length - 1 && styles.keyItemLast]}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.keyLabel}>{key.label || "API key"}</Text>
-                <Text style={styles.keyMeta}>
-                  Created {formatDate(key.created_at)}
-                  {key.last_used_at ? ` · Last used ${formatDate(key.last_used_at)}` : ""}
+          {createdKey ? (
+            <>
+              <Text style={styles.sectionTitle}>New key</Text>
+              <View style={styles.keyCard}>
+                <View style={styles.keyRow}>
+                  <Text style={styles.keyValue} selectable>
+                    {createdKey}
+                  </Text>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.copyButton,
+                      { opacity: pressed ? 0.7 : 1 },
+                    ]}
+                    onPress={handleCopy}
+                  >
+                    <Feather name="copy" size={16} color="#111111" />
+                  </Pressable>
+                </View>
+                <Text style={styles.copyLabel}>
+                  {copied
+                    ? "Copied."
+                    : "Save this key now. You will not see it again."}
                 </Text>
               </View>
-              {key.revoked_at ? (
-                <Text style={styles.revoked}>Revoked</Text>
-              ) : (
-                <Pressable
-                  onPress={() => revokeMutation.mutate(key.id)}
-                  disabled={revokeMutation.isPending}
+            </>
+          ) : null}
+
+          <Text style={styles.sectionTitle}>Your keys</Text>
+          <View style={styles.sectionCard}>
+            {isLoading ? (
+              <View style={styles.keyItem}>
+                <Text style={styles.keyMeta}>Loading keys...</Text>
+              </View>
+            ) : apiKeys.length === 0 ? (
+              <View style={styles.keyItem}>
+                <Text style={styles.keyMeta}>No API keys yet.</Text>
+              </View>
+            ) : (
+              apiKeys.map((key, index) => (
+                <View
+                  key={key.id}
+                  style={[
+                    styles.keyItem,
+                    index === apiKeys.length - 1 && styles.keyItemLast,
+                  ]}
                 >
-                  <Text style={styles.revoke}>Revoke</Text>
-                </Pressable>
-              )}
-            </View>
-          ))
-        )}
-      </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.keyLabel}>{key.label || "API key"}</Text>
+                    <Text style={styles.keyMeta}>
+                      Created {formatDate(key.created_at)}
+                      {key.last_used_at
+                        ? ` · Last used ${formatDate(key.last_used_at)}`
+                        : ""}
+                    </Text>
+                  </View>
+                  {key.revoked_at ? (
+                    <Text style={styles.revoked}>Revoked</Text>
+                  ) : (
+                    <Pressable
+                      onPress={() => revokeMutation.mutate(key.id)}
+                      disabled={revokeMutation.isPending}
+                    >
+                      <Text style={styles.revoke}>Revoke</Text>
+                    </Pressable>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
+        </>
+      ) : (
+        <>
+          <Text style={styles.sectionTitle}>Developer API access</Text>
+          <Text style={[styles.helper, { marginBottom: theme.spacing.sm }]}>
+            API access is currently available to approved admins only. Request
+            access to start scheduling posts via the API.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.requestButton,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={handleRequestAccess}
+            disabled={!ownerId}
+          >
+            <Text style={styles.requestButtonText}>Request access</Text>
+          </Pressable>
+          <Text style={[styles.helper, { marginTop: theme.spacing.sm }]}>
+            Documentation will be shared after approval.
+          </Text>
+        </>
+      )}
     </Screen>
   );
 }

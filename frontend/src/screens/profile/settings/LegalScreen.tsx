@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import Constants from "expo-constants";
 import Screen from "../../../components/layout/Screen";
 import { useTheme } from "../../../theme/useTheme";
@@ -6,6 +6,7 @@ import SettingsRow from "./SettingsRow";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { SettingsStackParamList } from "../../../navigation/settings";
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from "../../../config/legal";
 
 export default function SettingsLegalScreen() {
   const theme = useTheme();
@@ -14,6 +15,22 @@ export default function SettingsLegalScreen() {
   const appVersion =
     Constants.expoConfig?.version ?? Constants.manifest?.version ?? "1.0.0";
   const effectiveDate = "December 21, 2025";
+
+  const openExternal = async (
+    url: string,
+    fallbackRoute: keyof SettingsStackParamList,
+  ) => {
+    if (url) {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+        return;
+      }
+      Alert.alert("Link unavailable", "Unable to open the legal document.");
+      return;
+    }
+    navigation.navigate(fallbackRoute);
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -56,11 +73,11 @@ export default function SettingsLegalScreen() {
       <View style={styles.sectionCard}>
         <SettingsRow
           label="Terms of Service"
-          onPress={() => navigation.navigate("LegalTerms")}
+          onPress={() => openExternal(TERMS_OF_SERVICE_URL, "LegalTerms")}
         />
         <SettingsRow
           label="Privacy Policy"
-          onPress={() => navigation.navigate("LegalPrivacy")}
+          onPress={() => openExternal(PRIVACY_POLICY_URL, "LegalPrivacy")}
         />
         <SettingsRow
           label="Community Guidelines"

@@ -18,6 +18,7 @@ import { HomeStackParamList } from "../../navigation/home";
 import { RootState } from "../../redux/store";
 import { keys } from "../../hooks/queryKeys";
 import { getMediaPublicUrl, getMuxThumbnail } from "../../utils/mediaUrls";
+import { getBlockedUserIds } from "../../services/blocks";
 
 const NEW_USERS_LIMIT = 6;
 const NEW_POSTS_LIMIT = 6;
@@ -112,6 +113,12 @@ export default function SearchScreen({ route }: { route?: SearchRouteProp }) {
   const [activeTab, setActiveTab] = useState<SearchTab>("Top");
   const searchQuery = textInput.trim();
 
+  const { data: blockedUserIds = [] } = useQuery({
+    queryKey: keys.blockedUsers(currentUserId ?? ""),
+    queryFn: () => getBlockedUserIds(currentUserId ?? undefined),
+    enabled: !!currentUserId,
+  });
+
   useEffect(() => {
     if (route?.params?.query) {
       setTextInput(route.params.query);
@@ -119,11 +126,14 @@ export default function SearchScreen({ route }: { route?: SearchRouteProp }) {
   }, [route?.params?.query]);
 
   const { data: searchUsers = [], isFetching: searchLoading } = useQuery({
-    queryKey: keys.userSearch(searchQuery, currentUserId ?? ""),
+    queryKey: keys.userSearch(
+      searchQuery,
+      [currentUserId ?? "", blockedUserIds.join(",")].join("|"),
+    ),
     queryFn: () =>
       queryUsersByName(
         searchQuery,
-        currentUserId ? [currentUserId] : [],
+        currentUserId ? [currentUserId, ...blockedUserIds] : blockedUserIds,
       ),
     enabled: searchQuery.length > 0,
   });
@@ -135,8 +145,13 @@ export default function SearchScreen({ route }: { route?: SearchRouteProp }) {
   });
 
   const { data: newUsers = [], isFetching: newUsersLoading } = useQuery({
-    queryKey: keys.newUsers(currentUserId ?? ""),
-    queryFn: () => getNewUsers(currentUserId ?? undefined, NEW_USERS_LIMIT),
+    queryKey: [...keys.newUsers(currentUserId ?? ""), blockedUserIds.join(",")],
+    queryFn: () =>
+      getNewUsers(
+        currentUserId ?? undefined,
+        NEW_USERS_LIMIT,
+        blockedUserIds,
+      ),
     enabled: searchQuery.length === 0 && activeTab === "Top",
   });
 
@@ -144,23 +159,26 @@ export default function SearchScreen({ route }: { route?: SearchRouteProp }) {
     queryKey: [
       ...keys.newPosts(currentUserId ?? "", true),
       followingIds.join(","),
+      blockedUserIds.join(","),
     ],
     queryFn: () =>
       getRecentPosts({
         limit: NEW_POSTS_LIMIT,
         excludeUserId: currentUserId ?? undefined,
-        excludeUserIds: followingIds,
+        excludeUserIds: [...followingIds, ...blockedUserIds],
       }),
     enabled: searchQuery.length === 0 && activeTab === "Top",
   });
 
   const allUsersQuery = useInfiniteQuery({
-    queryKey: keys.allUsers(currentUserId ?? ""),
+    queryKey: [...keys.allUsers(currentUserId ?? ""), blockedUserIds.join(",")],
     queryFn: ({ pageParam = 0 }) =>
       getUsersPage({
         limit: ALL_USERS_PAGE_SIZE,
         offset: pageParam,
-        excludeIds: currentUserId ? [currentUserId] : [],
+        excludeIds: currentUserId
+          ? [currentUserId, ...blockedUserIds]
+          : blockedUserIds,
       }),
     getNextPageParam: (lastPage) => lastPage.nextOffset,
     enabled: searchQuery.length === 0 && activeTab === "Users",

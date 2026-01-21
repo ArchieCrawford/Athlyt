@@ -65,7 +65,12 @@ export default function ProfileNavBar({
               <Feather name="user-plus" size={20} color={theme.colors.text} />
             </Pressable>
           ) : null}
-          <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+          <Pressable
+            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            onPress={() =>
+              Alert.alert("Coming soon", "Music features are coming soon.")
+            }
+          >
             <Feather name="music" size={18} color={theme.colors.text} />
           </Pressable>
         </View>
