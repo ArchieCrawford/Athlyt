@@ -1,14 +1,18 @@
 {
   "expo": {
+    "name": "TAYP",
+    "slug": "tayp",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.archie.crawford.tayp",
+      "icon": "./assets/icon.png",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
     "extra": {
       "eas": {
         "projectId": "d8b4e81a-0c0a-4b6f-a0c6-12abbd6b9a01"
-      }
-    },
-    "ios": {
-      "bundleIdentifier": "com.archie.crawford.athlyt",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
       }
     }
   }
