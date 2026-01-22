@@ -246,35 +246,37 @@ const ChatScreen = () => {
               </AppText>
             ) : (
               <View style={{ gap: theme.spacing.sm }}>
-                {searchResults.map((user) => (
-                  <Pressable
-                    key={user.id}
-                    style={({ pressed }) => [
-                      styles.userRow,
-                      { opacity: pressed ? 0.85 : 1 },
-                    ]}
-                    onPress={() => handleStartChat(user)}
-                  >
-                    <Avatar
-                      size={44}
-                      uri={user.avatar_path ?? user.photoURL}
-                      label={user.displayName || user.email}
-                    />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <AppText variant="body">
-                        {user.displayName || user.email}
-                      </AppText>
-                      {user.username ? (
-                        <AppText
-                          variant="caption"
-                          style={{ color: theme.colors.textMuted }}
-                        >
-                          @{user.username}
-                        </AppText>
-                      ) : null}
-                    </View>
-                  </Pressable>
-                ))}
+                {searchResults.map((user) => {
+                  const displayName =
+                    user.displayName || user.username || "Athlete";
+                  return (
+                    <Pressable
+                      key={user.id}
+                      style={({ pressed }) => [
+                        styles.userRow,
+                        { opacity: pressed ? 0.85 : 1 },
+                      ]}
+                      onPress={() => handleStartChat(user)}
+                    >
+                      <Avatar
+                        size={44}
+                        uri={user.avatar_path ?? user.photoURL}
+                        label={displayName}
+                      />
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <AppText variant="body">{displayName}</AppText>
+                        {user.username ? (
+                          <AppText
+                            variant="caption"
+                            style={{ color: theme.colors.textMuted }}
+                          >
+                            @{user.username}
+                          </AppText>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
             )}
           </View>

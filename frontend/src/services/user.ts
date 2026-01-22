@@ -8,6 +8,12 @@ type FollowColumns = {
   following: "following" | "user_id";
 };
 
+const PUBLIC_USER_FIELDS =
+  "uid, displayName, username, avatar_path, photoURL, bio, followingCount, followersCount, likesCount";
+const PUBLIC_USER_FIELDS_NO_USERNAME =
+  "uid, displayName, avatar_path, photoURL, bio, followingCount, followersCount, likesCount";
+const PUBLIC_USER_VIEW_FIELDS = "uid, displayName, username, photoURL, bio";
+
 let userCreatedAtColumn: UserCreatedAtColumn = "created_at";
 let followColumns: FollowColumns = { follower: "follower", following: "following" };
 
@@ -64,6 +70,30 @@ const runFollowQuery = async <T>(
   }
 
   return { data: (result.data ?? []) as T, columns: followColumns };
+};
+
+const normalizeUserRow = (item: any): User => {
+  const uid = item?.uid ?? item?.id ?? "";
+  return {
+    uid,
+    email: "",
+    displayName: item?.displayName ?? null,
+    photoURL: item?.photoURL ?? null,
+    avatar_path: item?.avatar_path ?? null,
+    bio: item?.bio ?? null,
+    username: item?.username ?? null,
+    pronoun: item?.pronoun ?? null,
+    links: item?.links ?? null,
+    college: item?.college ?? null,
+    followingCount: Number(item?.followingCount ?? 0),
+    followersCount: Number(item?.followersCount ?? 0),
+    likesCount: Number(item?.likesCount ?? 0),
+  };
+};
+
+const normalizeSearchUser = (item: any): SearchUser => {
+  const base = normalizeUserRow(item);
+  return { id: base.uid, ...base };
 };
 
 export const saveUserProfileImage = (image: string) =>
@@ -178,7 +208,7 @@ export const queryUsersByEmail = (email: string): Promise<SearchUser[]> => {
 
       const { data, error } = await supabase
         .from("user")
-        .select("*")
+        .select(PUBLIC_USER_FIELDS)
         .ilike("email", `${email}%`)
         .limit(15);
 
@@ -186,7 +216,7 @@ export const queryUsersByEmail = (email: string): Promise<SearchUser[]> => {
         throw error;
       }
 
-      const users = (data || []).map((item) => ({ id: item.uid, ...item })) as SearchUser[];
+      const users = (data || []).map((item) => normalizeSearchUser(item));
       resolve(users);
     } catch (error) {
       console.error("Failed to query users: ", error);
@@ -210,8 +240,12 @@ export const queryUsersByName = (
       const like = `%${normalized}%`;
       const excludeList = excludeIds.map((id) => `"${id}"`).join(",");
 
-      const buildSearch = (table: string, includeUsername: boolean) => {
-        let request = supabase.from(table).select("*");
+      const buildSearch = (
+        table: string,
+        includeUsername: boolean,
+        fields: string,
+      ) => {
+        let request = supabase.from(table).select(fields);
         if (includeUsername) {
           request = request.or(
             `displayName.ilike.${like},username.ilike.${like}`,
@@ -231,6 +265,7 @@ export const queryUsersByName = (
         const { data: viewData, error } = await buildSearch(
           "user_search",
           true,
+          PUBLIC_USER_VIEW_FIELDS,
         );
         if (error) {
           throw error;
@@ -240,11 +275,12 @@ export const queryUsersByName = (
         const { data: tableData, error: tableError } = await buildSearch(
           "user",
           true,
+          PUBLIC_USER_FIELDS,
         );
         if (tableError) {
           if (isMissingColumnError(tableError, "username")) {
             const { data: fallbackData, error: fallbackError } =
-              await buildSearch("user", false);
+              await buildSearch("user", false, PUBLIC_USER_FIELDS_NO_USERNAME);
             if (fallbackError) {
               throw fallbackError;
             }
@@ -257,11 +293,7 @@ export const queryUsersByName = (
         }
       }
 
-      const users = (data || []).map((item: any) => ({
-        id: item.uid,
-        ...item,
-        email: item.email ?? "",
-      })) as SearchUser[];
+      const users = (data || []).map((item: any) => normalizeSearchUser(item));
       resolve(users);
     } catch (error) {
       console.error("Failed to query users: ", error);
@@ -281,7 +313,7 @@ export const getSuggestedUsers = async (
   const data = await runUserOrderQuery((column) => {
     let query = supabase
       .from("user")
-      .select("uid, email, displayName, username, avatar_path, photoURL, bio")
+      .select(PUBLIC_USER_FIELDS)
       .order(column, { ascending: false })
       .limit(limit);
 
@@ -292,7 +324,7 @@ export const getSuggestedUsers = async (
     return query;
   });
 
-  return (data || []).map((item: any) => ({ id: item.uid, ...item })) as SearchUser[];
+  return (data || []).map((item: any) => normalizeSearchUser(item));
 };
 
 export const getNewUsers = async (
@@ -306,7 +338,7 @@ export const getNewUsers = async (
   const data = await runUserOrderQuery((column) => {
     let request = supabase
       .from("user")
-      .select("uid, email, displayName, username, avatar_path, photoURL, bio")
+      .select(PUBLIC_USER_FIELDS)
       .order(column, { ascending: false })
       .limit(limit);
 
@@ -318,7 +350,7 @@ export const getNewUsers = async (
     return request;
   });
 
-  return (data || []).map((item: any) => ({ id: item.uid, ...item })) as SearchUser[];
+  return (data || []).map((item: any) => normalizeSearchUser(item));
 };
 
 export const getUsersPage = async ({
@@ -333,7 +365,7 @@ export const getUsersPage = async ({
   const data = await runUserOrderQuery((column) => {
     let request = supabase
       .from("user")
-      .select("uid, email, displayName, username, avatar_path, photoURL, bio")
+      .select(PUBLIC_USER_FIELDS)
       .order(column, { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -345,7 +377,7 @@ export const getUsersPage = async ({
     return request;
   });
 
-  const users = (data || []).map((item: any) => ({ id: item.uid, ...item })) as SearchUser[];
+  const users = (data || []).map((item: any) => normalizeSearchUser(item));
   const nextOffset = users.length < limit ? null : offset + limit;
 
   return { users, nextOffset };
@@ -450,7 +482,7 @@ export const getUserById = async (id: string): Promise<User | null> => {
   try {
     const { data, error } = await supabase
       .from("user")
-      .select("*")
+      .select(PUBLIC_USER_FIELDS)
       .eq("uid", id)
       .single();
 
@@ -458,7 +490,7 @@ export const getUserById = async (id: string): Promise<User | null> => {
       throw error;
     }
 
-    return (data as User) || null;
+    return data ? normalizeUserRow(data) : null;
   } catch (error) {
     throw new Error(String(error));
   }

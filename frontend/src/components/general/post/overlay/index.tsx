@@ -33,6 +33,7 @@ export default function PostSingleOverlay({
   const dispatch: AppDispatch = useDispatch();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const displayName = user.displayName || user.username || "Athlete";
 
   const [currentLikeState, setCurrentLikeState] = useState({
     state: false,
@@ -83,7 +84,7 @@ export default function PostSingleOverlay({
   return (
     <View style={styles.container}>
       <View>
-        <Text style={styles.displayName}>{user.displayName || user.email}</Text>
+        <Text style={styles.displayName}>{displayName}</Text>
         <Text style={styles.description}>{post.description}</Text>
       </View>
       <View style={styles.leftContainer}>

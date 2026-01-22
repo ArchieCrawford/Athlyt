@@ -265,6 +265,7 @@ export default function SearchScreen({ route }: { route?: SearchRouteProp }) {
         navigation.navigate("userPosts", {
           creator: item.creator,
           profile: true,
+          initialPostId: item.id,
         })
       }
     />

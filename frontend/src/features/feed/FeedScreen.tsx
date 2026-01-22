@@ -37,7 +37,7 @@ import { RootState } from "../../redux/store";
 import { keys } from "../../hooks/queryKeys";
 import { trackEvent } from "../../services/algorithm";
 import { getBlockedUserIds } from "../../services/blocks";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
 
 type FeedScreenRouteProp =
   | RouteProp<RootStackParamList, "userPosts">
@@ -69,12 +69,14 @@ export default function FeedScreen({
     creator: string;
     profile: boolean;
     tabBarHeight: number;
+    initialPostId: string;
   }>;
   const creator = params.creator ?? "";
   const profile = params.profile ?? false;
-  const safeAreaEdges = profile ? ["bottom"] : [];
+  const safeAreaEdges: Edge[] = profile ? ["bottom"] : [];
   const tabBarHeight = params.tabBarHeight ?? 0;
   const baseTabBarHeight = Math.max(0, tabBarHeight - insets.bottom);
+  const initialPostId = params.initialPostId;
 
   const itemHeight = useMemo(() => {
     const computed =
@@ -93,6 +95,7 @@ export default function FeedScreen({
   const [activeTab, setActiveTab] = useState<FeedTabKey>("For You");
   const [muted, setMuted] = useState(false);
   const mediaRefs = useRef<Record<string, FeedItemHandles | null>>({});
+  const listRef = useRef<FlatList<Post>>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const [seenLoaded, setSeenLoaded] = useState(false);
   const activePostIdRef = useRef<string | null>(null);
@@ -253,6 +256,14 @@ export default function FeedScreen({
     return posts;
   }, [activeTab, posts, profile, rankedPosts]);
 
+  const initialIndex = useMemo(() => {
+    if (!initialPostId || visiblePosts.length === 0) {
+      return null;
+    }
+    const index = visiblePosts.findIndex((post) => post.id === initialPostId);
+    return index >= 0 ? index : null;
+  }, [initialPostId, visiblePosts]);
+
   const emptyLabel = useMemo(() => {
     if (error) {
       return "Could not load posts";
@@ -356,6 +367,7 @@ export default function FeedScreen({
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={visiblePosts}
             windowSize={4}
             initialNumToRender={2}
@@ -382,11 +394,18 @@ export default function FeedScreen({
             keyExtractor={(item) => item.id}
             decelerationRate="fast"
             snapToInterval={itemHeight}
+            initialScrollIndex={initialIndex ?? undefined}
             getItemLayout={(_, index) => ({
               length: itemHeight,
               offset: itemHeight * index,
               index,
             })}
+            onScrollToIndexFailed={(info) => {
+              listRef.current?.scrollToOffset({
+                offset: info.averageItemLength * info.index,
+                animated: false,
+              });
+            }}
             onViewableItemsChanged={onViewableItemsChanged.current}
             refreshControl={
               <RefreshControl

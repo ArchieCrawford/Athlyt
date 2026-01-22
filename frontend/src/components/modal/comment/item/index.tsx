@@ -9,6 +9,7 @@ import { getMediaPublicUrl } from "../../../../utils/mediaUrls";
 
 const CommentItem = ({ item }: { item: Comment }) => {
   const user = useUser(item.creator).data;
+  const displayName = user?.displayName || user?.username || "Athlete";
 
   return (
     <View style={styles.container}>
@@ -23,7 +24,7 @@ const CommentItem = ({ item }: { item: Comment }) => {
       <View style={styles.containerText}>
         {user && (
           <Text style={styles.displayName}>
-            {user.displayName || user.email}
+            {displayName}
           </Text>
         )}
         <Text>{item.comment}</Text>

@@ -41,6 +41,7 @@ export default function ProfilePostListItem({ item }: { item: Post | null }) {
           navigation.navigate("userPosts", {
             creator: item.creator,
             profile: true,
+            initialPostId: item.id,
           })
         }
       >

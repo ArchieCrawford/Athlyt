@@ -31,6 +31,9 @@ export default function SearchUserItem({ item }: { item: SearchUser }) {
     [theme],
   );
 
+  const displayName = item.displayName || item.username || "Athlete";
+  const handle = item.username ? `@${item.username}` : "@athlete";
+
   return (
     <Pressable
       style={({ pressed }) => [
@@ -44,17 +47,15 @@ export default function SearchUserItem({ item }: { item: SearchUser }) {
       }
     >
       <View style={{ flex: 1 }}>
-        <AppText variant="body">
-          {item.displayName || item.email}
-        </AppText>
+        <AppText variant="body">{displayName}</AppText>
         <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
-          @{item.username || item.email?.split("@")[0] || "user"}
+          {handle}
         </AppText>
       </View>
       <Avatar
         size={40}
         uri={item.avatar_path ?? item.photoURL}
-        label={item.displayName || item.email}
+        label={displayName}
       />
     </Pressable>
   );

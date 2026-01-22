@@ -29,8 +29,7 @@ export default function ProfileNavBar({
       Alert.alert("Share failed", "Profile unavailable.");
       return;
     }
-    const username =
-      user.username || user.displayName || user.email?.split("@")[0] || "user";
+    const username = user.username || user.displayName || "user";
     const deepLink = `tayp://u/${user.uid}`;
     const message = `Find me on Tayp: ${username}\n${deepLink}`;
 

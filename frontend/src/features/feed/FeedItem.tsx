@@ -226,7 +226,8 @@ const FeedItem = forwardRef<FeedItemHandles, FeedItemProps>(
       : thumbUrl ?? mediaUrl ?? null;
     const hasPlayableVideo =
       isVideo && typeof videoUri === "string" && videoUri.trim().length > 0;
-    const username = user?.displayName || user?.email || item.creator;
+    const username =
+      user?.displayName || (user?.username ? `@${user.username}` : "Athlete");
     const avatarUri = user?.avatar_path ?? user?.photoURL;
     const showFollow = currentUserId ? currentUserId !== item.creator : true;
     const showShop = /#shop/i.test(description);

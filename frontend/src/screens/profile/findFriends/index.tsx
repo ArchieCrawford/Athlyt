@@ -221,11 +221,7 @@ export default function FindFriendsScreen() {
       Alert.alert("Invite unavailable", "Sign in to invite friends.");
       return;
     }
-    const label =
-      currentUser.username ||
-      currentUser.displayName ||
-      currentUser.email?.split("@")[0] ||
-      "athlete";
+    const label = currentUser.username || currentUser.displayName || "athlete";
     const deepLink = `tayp://u/${currentUser.uid}`;
     const message = `Add me on Tayp: ${label}\n${deepLink}`;
     try {
@@ -286,8 +282,8 @@ export default function FindFriendsScreen() {
     const isFollowing = followingIds.includes(item.uid);
     const handlePress = () =>
       navigation.navigate("profileOther", { initialUserId: item.uid });
-    const label =
-      item.username || item.displayName || item.email?.split("@")[0] || "user";
+    const displayName = item.displayName || item.username || "Athlete";
+    const handle = item.username || "user";
 
     return (
       <Pressable
@@ -300,12 +296,14 @@ export default function FindFriendsScreen() {
         <Avatar
           size={48}
           uri={item.avatar_path ?? item.photoURL}
-          label={item.displayName || item.email}
+          label={displayName}
         />
         <View style={styles.userMeta}>
-          <AppText variant="body">{item.displayName || item.email}</AppText>
+          <AppText variant="body">
+            {displayName}
+          </AppText>
           <AppText variant="caption" style={styles.username}>
-            @{label}
+            @{handle}
           </AppText>
           {item.bio ? (
             <AppText variant="caption" style={styles.bio} numberOfLines={1}>

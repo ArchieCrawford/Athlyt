@@ -48,7 +48,7 @@ export type RootStackParamList = {
   home: undefined;
   auth: undefined;
   pinVerification: undefined;
-  userPosts: { creator: string; profile: boolean };
+  userPosts: { creator: string; profile: boolean; initialPostId?: string };
   profileOther: { initialUserId: string };
   savePost: {
     source: string;
