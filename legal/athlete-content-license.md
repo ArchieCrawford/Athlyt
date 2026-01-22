@@ -89,5 +89,5 @@ Tayp is not an athlete agent and does not negotiate on behalf of athletes.
 Contact
 
 Questions regarding this License may be directed to:
-support@tayp.com
+Crawforda757@outlook.com
  (or your preferred contact)
