@@ -20,6 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.archie.crawford.tayp",
+      "usesAppleSignIn": true,
       "buildNumber": "7",
       "icon": "./assets/icon.png",
       "infoPlist": {
