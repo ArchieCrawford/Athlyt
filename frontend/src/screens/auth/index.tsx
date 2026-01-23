@@ -1,43 +1,40 @@
-import { useEffect, useState } from "react";
-import AuthDetails from "../../components/auth/details";
+import React, { useState } from "react";
+import { StatusBar, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AuthMenu from "../../components/auth/menu";
+import AuthDetails from "../../components/auth/details";
+import { useTheme } from "../../theme/useTheme";
 
-export default function AuthScreen({ route }: any) {
-  const mode = route?.params?.mode as "login" | "signup" | undefined;
-
+export default function AuthScreen() {
+  const theme = useTheme();
   const [authPage, setAuthPage] = useState<0 | 1>(0);
-  const [detailsPage, setDetailsPage] = useState(true);
+  const [detailsPage, setDetailsPage] = useState(false);
   const [menuMessage, setMenuMessage] = useState("");
 
-  useEffect(() => {
-    if (mode === "signup") {
-      setAuthPage(1);
-      setDetailsPage(true);
-    }
-    if (mode === "login") {
-      setAuthPage(0);
-      setDetailsPage(true);
-    }
-  }, [mode]);
-
   return (
-    <>
-      {detailsPage ? (
-        <AuthDetails
-          authPage={authPage}
-          menuMessage={menuMessage}
-          setAuthPage={setAuthPage}
-          setMenuMessage={setMenuMessage}
-          setDetailsPage={setDetailsPage}
-        />
-      ) : (
-        <AuthMenu
-          authPage={authPage}
-          menuMessage={menuMessage}
-          setAuthPage={setAuthPage}
-          setDetailsPage={setDetailsPage}
-        />
-      )}
-    </>
+    <SafeAreaView
+      edges={["top", "bottom"]}
+      style={{ flex: 1, backgroundColor: theme.colors.bg }}
+    >
+      <StatusBar barStyle="light-content" />
+      <View style={{ flex: 1 }}>
+        {detailsPage ? (
+          <AuthDetails
+            authPage={authPage}
+            menuMessage={menuMessage}
+            setAuthPage={setAuthPage}
+            setMenuMessage={setMenuMessage}
+            setDetailsPage={setDetailsPage}
+          />
+        ) : (
+          <AuthMenu
+            authPage={authPage}
+            menuMessage={menuMessage}
+            setAuthPage={setAuthPage}
+            setDetailsPage={setDetailsPage}
+          />
+        )}
+      </View>
+    </SafeAreaView>
   );
 }

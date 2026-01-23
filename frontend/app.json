@@ -2,8 +2,7 @@
   "expo": {
     "name": "Tayp",
     "slug": "tayp",
-    "entryPoint": "./App.tsx",
-    "version": "1.0.5",
+    "version": "1.0.8",
     "orientation": "portrait",
     "scheme": "tayp",
     "icon": "./assets/icon.png",
@@ -56,7 +55,8 @@
     "owner": "tayp",
     "plugins": [
       "expo-video",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "updates": {
       "enabled": false,
