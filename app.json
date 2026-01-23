@@ -2,7 +2,7 @@
   "expo": {
     "name": "TAYP",
     "slug": "tayp",
-    "icon": "./assets/icon.png",
+    "icon": "./frontendfrontend/assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.archie.crawford.tayp",
       "icon": "./assets/icon.png",
