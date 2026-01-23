@@ -34,7 +34,7 @@ const CAPTURE_MODES: CaptureMode[] = [
   { id: "60s", label: "60s", type: "video", maxDuration: 60 },
   { id: "15s", label: "15s", type: "video", maxDuration: 15 },
   { id: "photo", label: "Photo", type: "photo" },
-  { id: "text", label: "Text", type: "text" },
+  // TODO: Re-enable text mode post-launch once text posts are implemented.
 ];
 
 export default function CameraScreen() {
@@ -73,6 +73,7 @@ export default function CameraScreen() {
   const isVideoMode = selectedMode?.type === "video";
   const isPhotoMode = selectedMode?.type === "photo";
   const isTextMode = selectedMode?.type === "text";
+  const showSoundPicker = false;
 
   const styles = useMemo(
     () =>
@@ -315,30 +316,13 @@ export default function CameraScreen() {
       disabled: !torchSupported,
     },
     {
-      id: "timer",
-      icon: "clock",
-      label: "Timer",
-      onPress: () => Alert.alert("Timer", "Timer controls are coming soon."),
-    },
-    {
-      id: "effects",
-      icon: "aperture",
-      label: "Effects",
-      onPress: () => Alert.alert("Effects", "Effects are coming soon."),
-    },
-    {
       id: "mic",
       icon: audioEnabled ? "mic" : "mic-off",
       label: "Mic",
       onPress: () => setAudioEnabled((prev) => !prev),
       active: audioEnabled,
     },
-    {
-      id: "enhance",
-      icon: "star",
-      label: "Enhance",
-      onPress: () => Alert.alert("Enhance", "Enhance is coming soon."),
-    },
+    // TODO: Re-enable timer/effects/enhance controls post-launch.
   ];
 
   if (!hasRequiredPermissions) {
@@ -379,20 +363,22 @@ export default function CameraScreen() {
           />
         ) : null}
 
-        <View style={styles.topBar}>
-          <Pressable
-            onPress={() => navigation.navigate("soundPicker")}
-            style={({ pressed }) => [
-              styles.soundPill,
-              { opacity: pressed ? 0.85 : 1 },
-            ]}
-          >
-            <Feather name="music" size={16} color={theme.colors.text} />
-            <AppText variant="caption" style={styles.soundText}>
-              Add sound
-            </AppText>
-          </Pressable>
-        </View>
+        {showSoundPicker ? (
+          <View style={styles.topBar}>
+            <Pressable
+              onPress={() => navigation.navigate("soundPicker")}
+              style={({ pressed }) => [
+                styles.soundPill,
+                { opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <Feather name="music" size={16} color={theme.colors.text} />
+              <AppText variant="caption" style={styles.soundText}>
+                Add sound
+              </AppText>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.railContainer}>
           <ActionRail items={actionItems} />

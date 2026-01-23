@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ImageBackground,
@@ -20,6 +21,7 @@ import useAuth from "../../../hooks/useAuth";
 import { useTheme } from "../../../theme/useTheme";
 import AppText from "../../ui/AppText";
 import { logAuthEvent } from "../../../services/telemetry";
+import { signInWithProvider } from "../../../services/oauth";
 
 export interface AuthDetailsProps {
   authPage: 0 | 1;
@@ -55,6 +57,9 @@ export default function AuthDetails({
   const [password, setPassword] = useState("");
   const [secureEntry, setSecureEntry] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<"apple" | "google" | null>(
+    null,
+  );
   const { signIn, signUp } = useAuth();
   const accent = "#35D37A";
   const isLogin = authPage === 0;
@@ -80,6 +85,23 @@ export default function AuthDetails({
         const msg = err?.message || "Sign up failed. Try again.";
         setMenuMessage(msg);
       });
+  };
+
+  const handleOAuth = async (provider: "apple" | "google") => {
+    if (oauthLoading) {
+      return;
+    }
+    setOauthLoading(provider);
+    try {
+      await signInWithProvider(provider);
+      setMenuMessage("");
+    } catch (err: any) {
+      const msg = err?.message || "Social sign-in failed.";
+      logAuthEvent("oauth_failed", { error: msg });
+      Alert.alert("Sign in failed", msg);
+    } finally {
+      setOauthLoading(null);
+    }
   };
 
   const styles = useMemo(
@@ -425,28 +447,28 @@ export default function AuthDetails({
                         styles.socialButton,
                         { opacity: pressed ? 0.7 : 1 },
                       ]}
-                      onPress={() =>
-                        Alert.alert(
-                          "Apple Sign In",
-                          "Social sign-in coming soon.",
-                        )
-                      }
+                      disabled={!!oauthLoading}
+                      onPress={() => handleOAuth("apple")}
                     >
-                      <FontAwesome name="apple" size={20} color="#E9EEF7" />
+                      {oauthLoading === "apple" ? (
+                        <ActivityIndicator color="#E9EEF7" />
+                      ) : (
+                        <FontAwesome name="apple" size={20} color="#E9EEF7" />
+                      )}
                     </Pressable>
                     <Pressable
                       style={({ pressed }) => [
                         styles.socialButton,
                         { opacity: pressed ? 0.7 : 1 },
                       ]}
-                      onPress={() =>
-                        Alert.alert(
-                          "Google Sign In",
-                          "Social sign-in coming soon.",
-                        )
-                      }
+                      disabled={!!oauthLoading}
+                      onPress={() => handleOAuth("google")}
                     >
-                      <FontAwesome name="google" size={18} color="#E9EEF7" />
+                      {oauthLoading === "google" ? (
+                        <ActivityIndicator color="#E9EEF7" />
+                      ) : (
+                        <FontAwesome name="google" size={18} color="#E9EEF7" />
+                      )}
                     </Pressable>
                   </View>
                 ) : null}

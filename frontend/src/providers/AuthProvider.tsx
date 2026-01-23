@@ -14,6 +14,10 @@ import { User } from "../../types";
 import { AppDispatch } from "../redux/store";
 import { setUserState } from "../redux/slices/authSlice";
 import { getPostsByUser } from "../redux/slices/postSlice";
+import {
+  PROFILES_TABLE,
+  PROFILES_TABLE_FALLBACK,
+} from "../constants/supabaseTables";
 
 interface AuthContextValue {
   session: Session | null;
@@ -26,6 +30,21 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+let profilesTable = PROFILES_TABLE;
+
+const isMissingTableError = (error: { code?: string; message?: string }, table: string) => {
+  if (!error) {
+    return false;
+  }
+  if (error.code === "42P01") {
+    return true;
+  }
+  if (typeof error.message === "string") {
+    return error.message.includes(table);
+  }
+  return false;
+};
 
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -50,20 +69,24 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const fetchProfile = useCallback(async (uid: string) => {
-    const { data, error } = await supabase
-      .from("user")
-      .select("*")
-      .eq("uid", uid)
-      .single();
+    const runQuery = (table: string) =>
+      supabase.from(table).select("*").eq("uid", uid).single();
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        return null;
-      }
-      throw error;
+    let result = await runQuery(profilesTable);
+
+    if (result.error && isMissingTableError(result.error, profilesTable)) {
+      profilesTable = PROFILES_TABLE_FALLBACK;
+      result = await runQuery(profilesTable);
     }
 
-    return data as User;
+    if (result.error) {
+      if (result.error.code === "PGRST116") {
+        return null;
+      }
+      throw result.error;
+    }
+
+    return result.data as User;
   }, []);
 
   const createProfile = useCallback(async (authUser: Session["user"]) => {
@@ -74,25 +97,33 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const avatarPath =
       (authUser.user_metadata?.avatar_path as string | undefined) || null;
 
-    const { data, error } = await supabase
-      .from("user")
-      .insert({
-        uid: authUser.id,
-        email: authUser.email,
-        displayName: displayNameFallback,
-        avatar_path: avatarPath,
-        followingCount: 0,
-        followersCount: 0,
-        likesCount: 0,
-      })
-      .select()
-      .single();
+    const runInsert = (table: string) =>
+      supabase
+        .from(table)
+        .insert({
+          uid: authUser.id,
+          email: authUser.email,
+          displayName: displayNameFallback,
+          avatar_path: avatarPath,
+          followingCount: 0,
+          followersCount: 0,
+          likesCount: 0,
+        })
+        .select()
+        .single();
 
-    if (error) {
-      throw error;
+    let result = await runInsert(profilesTable);
+
+    if (result.error && isMissingTableError(result.error, profilesTable)) {
+      profilesTable = PROFILES_TABLE_FALLBACK;
+      result = await runInsert(profilesTable);
     }
 
-    return data as User;
+    if (result.error) {
+      throw result.error;
+    }
+
+    return result.data as User;
   }, []);
 
   const ensureProfile = useCallback(
@@ -111,7 +142,12 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .channel(`user-${uid}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "user", filter: `uid=eq.${uid}` },
+          {
+            event: "*",
+            schema: "public",
+            table: profilesTable,
+            filter: `uid=eq.${uid}`,
+          },
           (payload) => {
             const updatedUser = payload.new as User;
             applyProfile(updatedUser);

@@ -13,6 +13,7 @@ import { useEffect } from "react";
 import * as Updates from "expo-updates";
 import { AppState, AppStateStatus } from "react-native";
 import { logEvent, startSession } from "./src/services/telemetry";
+import { runRlsSanityCheck } from "./src/services/rlsSanity";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +48,11 @@ function ThemedRoute() {
     startSession().then(() => {
       logEvent("app_open");
     });
+    if (__DEV__) {
+      runRlsSanityCheck().catch((error) => {
+        console.warn("RLS sanity check failed", error);
+      });
+    }
     const sub = AppState.addEventListener(
       "change",
       (state: AppStateStatus) => {

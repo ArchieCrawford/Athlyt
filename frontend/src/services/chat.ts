@@ -2,6 +2,7 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../../supabaseClient";
 import { getBlockedUserIds, isUserBlocked } from "./blocks";
 import { Chat, Message } from "../../types";
+import { CHATS_TABLE, MESSAGES_TABLE } from "../constants/supabaseTables";
 
 let chatsChannel: RealtimeChannel | null = null;
 
@@ -11,7 +12,7 @@ export const chatsListener = async (
 ) => {
   const loadChats = async () => {
     const { data, error } = await supabase
-      .from("chats")
+      .from(CHATS_TABLE)
       .select("*")
       .contains("members", [userId])
       .order("lastUpdate", { ascending: false });
@@ -45,7 +46,7 @@ export const chatsListener = async (
     .channel(`chats-${userId}`)
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "chats" },
+      { event: "*", schema: "public", table: CHATS_TABLE },
       (payload) => {
         const members =
           (payload.new as Chat | null)?.members ||
@@ -73,7 +74,7 @@ export const messagesListener = async (
 ) => {
   const loadMessages = async () => {
     const { data, error } = await supabase
-      .from("messages")
+      .from(MESSAGES_TABLE)
       .select("*")
       .eq("chat_id", chatId)
       .order("creation", { ascending: false });
@@ -92,7 +93,7 @@ export const messagesListener = async (
       {
         event: "*",
         schema: "public",
-        table: "messages",
+        table: MESSAGES_TABLE,
         filter: `chat_id=eq.${chatId}`,
       },
       () => loadMessages(),
@@ -115,7 +116,7 @@ export const sendMessage = async (chatId: string, message: string) => {
   }
 
   const { data: chat, error: chatError } = await supabase
-    .from("chats")
+    .from(CHATS_TABLE)
     .select("members")
     .eq("id", chatId)
     .single();
@@ -132,7 +133,7 @@ export const sendMessage = async (chatId: string, message: string) => {
     }
   }
 
-  const { error } = await supabase.from("messages").insert({
+  const { error } = await supabase.from(MESSAGES_TABLE).insert({
     chat_id: chatId,
     creator: user.id,
     message,
@@ -145,7 +146,7 @@ export const sendMessage = async (chatId: string, message: string) => {
   }
 
   const { error: updateError } = await supabase
-    .from("chats")
+    .from(CHATS_TABLE)
     .update({
       lastUpdate: new Date().toISOString(),
       lastMessage: message,
@@ -182,7 +183,7 @@ export const createChat = async (
     }
 
     const { data: chatData, error: chatError } = await supabase
-      .from("chats")
+      .from(CHATS_TABLE)
       .insert({
         lastUpdate: new Date().toISOString(),
         lastMessage: "",
@@ -207,7 +208,7 @@ export const findChatByMembers = async (
   memberB: string,
 ): Promise<Chat | null> => {
   const { data, error } = await supabase
-    .from("chats")
+    .from(CHATS_TABLE)
     .select("*")
     .contains("members", [memberA, memberB])
     .order("lastUpdate", { ascending: false })

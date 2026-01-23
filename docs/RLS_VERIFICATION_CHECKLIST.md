@@ -1,0 +1,6 @@
+- Feed loads (posts visible)
+- Profiles visible (can browse users)
+- Follow/unfollow works
+- Like works
+- Comment works
+- DMs unaffected (chats/messages still work)

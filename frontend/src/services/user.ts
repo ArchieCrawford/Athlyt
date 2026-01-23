@@ -1,4 +1,9 @@
 import { resolveStorageBucketForPath, supabase } from "../../supabaseClient";
+import {
+  FOLLOWS_TABLE,
+  PROFILES_TABLE,
+  PROFILES_TABLE_FALLBACK,
+} from "../constants/supabaseTables";
 import { saveMediaToStorage } from "./utils";
 import { SearchUser, User } from "../../types";
 
@@ -14,6 +19,7 @@ const PUBLIC_USER_FIELDS_NO_USERNAME =
   "uid, displayName, avatar_path, photoURL, bio, followingCount, followersCount, likesCount";
 const PUBLIC_USER_VIEW_FIELDS = "uid, displayName, username, photoURL, bio";
 
+let profilesTable = PROFILES_TABLE;
 let userCreatedAtColumn: UserCreatedAtColumn = "created_at";
 let followColumns: FollowColumns = { follower: "follower", following: "following" };
 
@@ -30,11 +36,29 @@ const isMissingColumnError = (error: { code?: string; message?: string }, column
   return false;
 };
 
+const isMissingTableError = (error: { code?: string; message?: string }, table: string) => {
+  if (!error) {
+    return false;
+  }
+  if (error.code === "42P01") {
+    return true;
+  }
+  if (typeof error.message === "string") {
+    return error.message.includes(table);
+  }
+  return false;
+};
+
 const runUserOrderQuery = async <T>(
   builder: (column: UserCreatedAtColumn) => Promise<{ data: T | null; error: any }>,
 ): Promise<T> => {
   let column = userCreatedAtColumn;
   let result = await builder(column);
+
+  if (result.error && isMissingTableError(result.error, profilesTable)) {
+    profilesTable = PROFILES_TABLE_FALLBACK;
+    result = await builder(column);
+  }
 
   if (result.error && isMissingColumnError(result.error, column)) {
     column = column === "created_at" ? "createdAt" : "created_at";
@@ -70,6 +94,23 @@ const runFollowQuery = async <T>(
   }
 
   return { data: (result.data ?? []) as T, columns: followColumns };
+};
+
+const runProfileQuery = async <T>(
+  builder: (table: string) => Promise<{ data: T | null; error: any }>,
+): Promise<T> => {
+  let result = await builder(profilesTable);
+
+  if (result.error && isMissingTableError(result.error, profilesTable)) {
+    profilesTable = PROFILES_TABLE_FALLBACK;
+    result = await builder(profilesTable);
+  }
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return (result.data ?? []) as T;
 };
 
 const normalizeUserRow = (item: any): User => {
@@ -108,17 +149,17 @@ export const saveUserProfileImage = (image: string) =>
         throw new Error("User is not authenticated");
       }
 
-      const avatarPath = `profileImage/${user.id}`;
+      const avatarPath = `profileImage/${user.id}/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}.jpg`;
       await saveMediaToStorage(image, avatarPath);
 
-      const { error: updateError } = await supabase
-        .from("user")
-        .update({ avatar_path: null, photoURL: avatarPath })
-        .eq("uid", user.id);
-
-      if (updateError) {
-        throw updateError;
-      }
+      await runProfileQuery((table) =>
+        supabase
+          .from(table)
+          .update({ avatar_path: null, photoURL: avatarPath })
+          .eq("uid", user.id),
+      );
 
       await supabase.auth.updateUser({
         data: { avatar_path: null, photoURL: avatarPath },
@@ -143,22 +184,31 @@ export const removeUserProfileImage = () =>
         throw new Error("User is not authenticated");
       }
 
-      const { error: updateError } = await supabase
-        .from("user")
-        .update({ avatar_path: null, photoURL: null })
-        .eq("uid", user.id);
+      const existingProfile = await runProfileQuery<{ photoURL?: string | null; avatar_path?: string | null }>(
+        (table) =>
+          supabase
+            .from(table)
+            .select("photoURL, avatar_path")
+            .eq("uid", user.id)
+            .single(),
+      );
 
-      if (updateError) {
-        throw updateError;
-      }
+      await runProfileQuery((table) =>
+        supabase
+          .from(table)
+          .update({ avatar_path: null, photoURL: null })
+          .eq("uid", user.id),
+      );
 
       await supabase.auth.updateUser({
         data: { avatar_path: null, photoURL: null },
       });
 
-      const path = `profileImage/${user.id}`;
-      const bucket = resolveStorageBucketForPath(path);
-      await supabase.storage.from(bucket).remove([path]);
+      const path = existingProfile?.photoURL ?? existingProfile?.avatar_path;
+      if (path) {
+        const bucket = resolveStorageBucketForPath(path);
+        await supabase.storage.from(bucket).remove([path]);
+      }
 
       resolve();
     } catch (error) {
@@ -182,14 +232,9 @@ export const saveUserField = (field: string, value: string) =>
       const updatePayload: Record<string, string> = {};
       updatePayload[field] = value;
 
-      const { error: updateError } = await supabase
-        .from("user")
-        .update(updatePayload)
-        .eq("uid", user.id);
-
-      if (updateError) {
-        throw updateError;
-      }
+      await runProfileQuery((table) =>
+        supabase.from(table).update(updatePayload).eq("uid", user.id),
+      );
 
       resolve();
     } catch (error) {
@@ -206,17 +251,32 @@ export const queryUsersByEmail = (email: string): Promise<SearchUser[]> => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("user")
+      let tableName = profilesTable;
+      let result = await supabase
+        .from(tableName)
         .select(PUBLIC_USER_FIELDS)
         .ilike("email", `${email}%`)
         .limit(15);
 
-      if (error) {
-        throw error;
+      if (
+        result.error &&
+        (isMissingTableError(result.error, tableName) ||
+          isMissingColumnError(result.error, "email"))
+      ) {
+        profilesTable = PROFILES_TABLE_FALLBACK;
+        tableName = profilesTable;
+        result = await supabase
+          .from(tableName)
+          .select(PUBLIC_USER_FIELDS)
+          .ilike("email", `${email}%`)
+          .limit(15);
       }
 
-      const users = (data || []).map((item) => normalizeSearchUser(item));
+      if (result.error) {
+        throw result.error;
+      }
+
+      const users = (result.data || []).map((item) => normalizeSearchUser(item));
       resolve(users);
     } catch (error) {
       console.error("Failed to query users: ", error);
@@ -272,15 +332,31 @@ export const queryUsersByName = (
         }
         data = (viewData || []) as SearchUser[];
       } catch (error: any) {
-        const { data: tableData, error: tableError } = await buildSearch(
-          "user",
+        let tableName = profilesTable;
+        let { data: tableData, error: tableError } = await buildSearch(
+          tableName,
           true,
           PUBLIC_USER_FIELDS,
         );
         if (tableError) {
+          if (isMissingTableError(tableError, tableName)) {
+            profilesTable = PROFILES_TABLE_FALLBACK;
+            tableName = profilesTable;
+            const retry = await buildSearch(
+              tableName,
+              true,
+              PUBLIC_USER_FIELDS,
+            );
+            tableData = retry.data;
+            tableError = retry.error;
+          }
           if (isMissingColumnError(tableError, "username")) {
             const { data: fallbackData, error: fallbackError } =
-              await buildSearch("user", false, PUBLIC_USER_FIELDS_NO_USERNAME);
+              await buildSearch(
+                tableName,
+                false,
+                PUBLIC_USER_FIELDS_NO_USERNAME,
+              );
             if (fallbackError) {
               throw fallbackError;
             }
@@ -312,7 +388,7 @@ export const getSuggestedUsers = async (
 
   const data = await runUserOrderQuery((column) => {
     let query = supabase
-      .from("user")
+      .from(profilesTable)
       .select(PUBLIC_USER_FIELDS)
       .order(column, { ascending: false })
       .limit(limit);
@@ -337,7 +413,7 @@ export const getNewUsers = async (
   );
   const data = await runUserOrderQuery((column) => {
     let request = supabase
-      .from("user")
+      .from(profilesTable)
       .select(PUBLIC_USER_FIELDS)
       .order(column, { ascending: false })
       .limit(limit);
@@ -364,7 +440,7 @@ export const getUsersPage = async ({
 }): Promise<{ users: SearchUser[]; nextOffset: number | null }> => {
   const data = await runUserOrderQuery((column) => {
     let request = supabase
-      .from("user")
+      .from(profilesTable)
       .select(PUBLIC_USER_FIELDS)
       .order(column, { ascending: false })
       .range(offset, offset + limit - 1);
@@ -401,7 +477,7 @@ export const getFollowingIds = async (userId?: string): Promise<string[]> => {
 
     const { data, columns } = await runFollowQuery((cols) =>
       supabase
-        .from("following")
+        .from(FOLLOWS_TABLE)
         .select(cols.following)
         .eq(cols.follower, resolvedUserId),
     );
@@ -431,7 +507,7 @@ export const getFollowerIds = async (userId?: string): Promise<string[]> => {
 
     const { data, columns } = await runFollowQuery((cols) =>
       supabase
-        .from("following")
+        .from(FOLLOWS_TABLE)
         .select(cols.follower)
         .eq(cols.following, resolvedUserId),
     );
@@ -480,15 +556,9 @@ export const getFriendIds = async (userId?: string): Promise<string[]> => {
  */
 export const getUserById = async (id: string): Promise<User | null> => {
   try {
-    const { data, error } = await supabase
-      .from("user")
-      .select(PUBLIC_USER_FIELDS)
-      .eq("uid", id)
-      .single();
-
-    if (error) {
-      throw error;
-    }
+    const data = await runProfileQuery((table) =>
+      supabase.from(table).select(PUBLIC_USER_FIELDS).eq("uid", id).single(),
+    );
 
     return data ? normalizeUserRow(data) : null;
   } catch (error) {
@@ -507,7 +577,7 @@ export const getIsFollowing = async (userId: string, otherUserId: string) => {
   try {
     const { data } = await runFollowQuery((cols) =>
       supabase
-        .from("following")
+        .from(FOLLOWS_TABLE)
         .select(cols.follower)
         .eq(cols.follower, userId)
         .eq(cols.following, otherUserId),
@@ -552,7 +622,7 @@ export const changeFollowState = async ({
     if (isFollowing) {
       await runFollowQuery((cols) =>
         supabase
-          .from("following")
+          .from(FOLLOWS_TABLE)
           .delete()
           .eq(cols.follower, currentUserUid)
           .eq(cols.following, otherUserId),
@@ -561,7 +631,7 @@ export const changeFollowState = async ({
     } else {
       await runFollowQuery((cols) =>
         supabase
-          .from("following")
+          .from(FOLLOWS_TABLE)
           .insert({ [cols.follower]: currentUserUid, [cols.following]: otherUserId }),
       );
       return true;

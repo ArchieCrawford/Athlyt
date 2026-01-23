@@ -181,32 +181,6 @@ const ChatScreen = () => {
     return <ChatListItem chat={item} />;
   };
 
-  const renderBubble = (label: string, icon?: keyof typeof Feather.glyphMap) => (
-    <View style={styles.bubble} key={label}>
-      <View
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: theme.colors.surface2,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {icon ? (
-          <Feather name={icon} size={22} color={theme.colors.text} />
-        ) : (
-          <AppText variant="body">
-            {label.slice(0, 2).toUpperCase()}
-          </AppText>
-        )}
-      </View>
-      <AppText variant="caption" style={{ textAlign: "center" }}>
-        {label}
-      </AppText>
-    </View>
-  );
-
   return (
     <Screen padding={false}>
       <View style={styles.headerRow}>
@@ -281,32 +255,7 @@ const ChatScreen = () => {
             )}
           </View>
         ) : null}
-        <View style={styles.bubblesRow}>
-          {renderBubble("Create", "plus")}
-          {renderBubble("Contacts")}
-          {renderBubble("Recent")}
-          {renderBubble("More")}
-        </View>
-
-        <View style={styles.sections}>
-          <Pressable
-            style={styles.sectionRow}
-            onPress={() =>
-              Alert.alert("Coming soon", "New followers is coming soon.")
-            }
-          >
-            <AppText variant="body">New followers</AppText>
-            <Feather name="chevron-right" size={18} color={theme.colors.text} />
-          </Pressable>
-          <View style={styles.divider} />
-          <Pressable
-            style={styles.sectionRow}
-            onPress={() => Alert.alert("Coming soon", "Activity is coming soon.")}
-          >
-            <AppText variant="body">Activity</AppText>
-            <Feather name="chevron-right" size={18} color={theme.colors.text} />
-          </Pressable>
-        </View>
+        {/* TODO: Re-enable inbox quick actions and activity sections post-launch. */}
 
         <View style={{ paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md }}>
           <AppText variant="subtitle" style={{ marginBottom: theme.spacing.sm }}>

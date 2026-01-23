@@ -5,6 +5,7 @@ import { supabase } from "../../../supabaseClient";
 import { saveMediaToStorage } from "../../services/utils";
 import { logEvent } from "../../services/telemetry";
 import { Post } from "../../../types";
+import { POSTS_TABLE } from "../../constants/supabaseTables";
 
 interface PostState {
   loading: boolean;
@@ -54,7 +55,7 @@ export const createPost = createAsyncThunk(
         await saveMediaToStorage(video, mediaPath);
         thumbPath = mediaPath;
         media = [mediaPath, thumbPath];
-        const { error: insertError } = await supabase.from("post").insert({
+        const { error: insertError } = await supabase.from(POSTS_TABLE).insert({
           id: postId,
           creator: user.id,
           media,
@@ -93,7 +94,7 @@ export const createPost = createAsyncThunk(
         await saveMediaToStorage(thumbnailUri, thumbPath);
       }
 
-      const { error: insertError } = await supabase.from("post").insert({
+      const { error: insertError } = await supabase.from(POSTS_TABLE).insert({
         id: postId,
         creator: user.id,
         media: [],
@@ -130,7 +131,7 @@ export const createPost = createAsyncThunk(
       }
 
       const { error: updateError } = await supabase
-        .from("post")
+        .from(POSTS_TABLE)
         .update({ mux_upload_id: uploadId })
         .eq("id", postId);
 
@@ -176,7 +177,7 @@ export const getPostsByUser = createAsyncThunk(
   async (uid: string, { dispatch, rejectWithValue }) => {
     try {
       const { data, error } = await supabase
-        .from("post")
+        .from(POSTS_TABLE)
         .select("*")
         .eq("creator", uid)
         .order("creation", { ascending: false });

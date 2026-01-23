@@ -15,7 +15,7 @@ const storageBucket = process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET?.trim();
 const profileBucket = process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET_PROFILE?.trim();
 const postsBucket = process.env.EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET_POSTS?.trim();
 
-export const SUPABASE_STORAGE_BUCKET = storageBucket || "Athlyt";
+export const SUPABASE_STORAGE_BUCKET = storageBucket || "media";
 export const SUPABASE_STORAGE_BUCKET_PROFILE =
   profileBucket || SUPABASE_STORAGE_BUCKET;
 export const SUPABASE_STORAGE_BUCKET_POSTS =

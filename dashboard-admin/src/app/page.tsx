@@ -2,6 +2,14 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { createSupabaseServerClient } from "../lib/supabaseServer";
 import { createServiceClient } from "../lib/supabaseService";
+import {
+  FOLLOWS_TABLE,
+  POST_COMMENTS_TABLE,
+  POST_LIKES_TABLE,
+  POSTS_TABLE,
+  PROFILES_TABLE,
+  PROFILES_TABLE_FALLBACK,
+} from "../constants/supabaseTables";
 
 type DailyCount = { date: string; count: number };
 
@@ -29,6 +37,15 @@ function buildLast7() {
 
 async function fetchMetrics(userId: string) {
   const svc = createServiceClient();
+  const resolveProfilesTable = async () => {
+    const probe = await svc
+      .from(PROFILES_TABLE)
+      .select("*", { count: "exact", head: true });
+    if (probe.error && probe.error.code === "42P01") {
+      return PROFILES_TABLE_FALLBACK;
+    }
+    return PROFILES_TABLE;
+  };
 
   const adminCheck = await svc
     .from("admin_users")
@@ -41,6 +58,19 @@ async function fetchMetrics(userId: string) {
   }
 
   const since7 = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const profilesTable = await resolveProfilesTable();
+
+  let usersLast7 = await svc
+    .from(profilesTable)
+    .select('createdAt')
+    .gte("createdAt", since7);
+
+  if (usersLast7.error && usersLast7.error.code === "42703") {
+    usersLast7 = await svc
+      .from(profilesTable)
+      .select("created_at")
+      .gte("created_at", since7);
+  }
 
   const [
     users,
@@ -50,18 +80,22 @@ async function fetchMetrics(userId: string) {
     comments,
     likes,
     follows,
-    usersLast7,
     eventsLast7,
     authEventsLast7,
   ] = await Promise.all([
-    svc.from("user").select("uid", { count: "exact", head: true }),
-    svc.from("post").select("id", { count: "exact", head: true }),
-    svc.from("post").select("id", { count: "exact", head: true }).eq("media_type", "image"),
-    svc.from("post").select("id", { count: "exact", head: true }).eq("media_type", "video"),
-    svc.from("post_comments").select("id", { count: "exact", head: true }),
-    svc.from("post_likes").select("post_id", { count: "exact", head: true }),
-    svc.from("following").select("follower", { count: "exact", head: true }),
-    svc.from("user").select('uid, "createdAt"').gte("createdAt", since7),
+    svc.from(profilesTable).select("*", { count: "exact", head: true }),
+    svc.from(POSTS_TABLE).select("id", { count: "exact", head: true }),
+    svc
+      .from(POSTS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("media_type", "image"),
+    svc
+      .from(POSTS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("media_type", "video"),
+    svc.from(POST_COMMENTS_TABLE).select("id", { count: "exact", head: true }),
+    svc.from(POST_LIKES_TABLE).select("post_id", { count: "exact", head: true }),
+    svc.from(FOLLOWS_TABLE).select("follower", { count: "exact", head: true }),
     svc.from("app_events").select("event, created_at, session_id").gte("created_at", since7),
     svc.from("auth_events").select("event, created_at").gte("created_at", since7),
   ]);

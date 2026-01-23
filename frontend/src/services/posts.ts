@@ -1,6 +1,11 @@
 import { Dispatch, SetStateAction } from "react";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../../supabaseClient";
+import {
+  POST_COMMENTS_TABLE,
+  POST_LIKES_TABLE,
+  POSTS_TABLE,
+} from "../constants/supabaseTables";
 import { rankFeed, trackEvent } from "./algorithm";
 import { Post, Comment } from "../types";
 
@@ -27,6 +32,36 @@ export const ensurePosterUrlForPost = async (post: Post): Promise<Post> => {
   };
 };
 
+const normalizePostRow = (item: any): Post => {
+  const media = Array.isArray(item?.media) ? item.media : [];
+  const mediaPath = item?.media_path ?? item?.media_url ?? media[0] ?? null;
+  const posterUrl =
+    item?.poster_url ?? item?.thumbnail_url ?? item?.thumb_url ?? null;
+  const thumbPath =
+    item?.thumb_path ?? posterUrl ?? media[1] ?? item?.thumbnail_url ?? null;
+
+  return {
+    id: item.id,
+    creator: item.creator ?? item.user_id ?? item.owner ?? "",
+    media,
+    media_path: mediaPath,
+    thumb_path: thumbPath,
+    media_type: item.media_type ?? item.mediaType ?? "image",
+    mux_playback_id: item.mux_playback_id ?? item.muxPlaybackId ?? null,
+    poster_url: posterUrl ?? thumbPath ?? null,
+    description: item.description ?? item.caption ?? "",
+    sport: item.sport ?? null,
+    team: item.team ?? null,
+    likesCount: Number(item.likesCount ?? item.likes_count ?? 0),
+    commentsCount: Number(item.commentsCount ?? item.comments_count ?? 0),
+    creation:
+      item.creation ??
+      item.created_at ??
+      item.createdAt ??
+      new Date().toISOString(),
+  } as Post;
+};
+
 /**
  * Returns all the posts in the database.
  *
@@ -42,7 +77,7 @@ export const getFeed = async ({
   try {
     const rankedIds = await rankFeed({ limit: 40 });
     if (rankedIds.length > 0) {
-      let request = supabase.from("post").select("*").in("id", rankedIds);
+      let request = supabase.from(POSTS_TABLE).select("*").in("id", rankedIds);
       if (excludeCreatorIds.length > 0) {
         const excludeList = excludeCreatorIds.map((id) => `"${id}"`).join(",");
         request = request.not("creator", "in", `(${excludeList})`);
@@ -64,11 +99,7 @@ export const getFeed = async ({
 
         return await Promise.all(
           filtered.map(async (item) =>
-            ensurePosterUrlForPost({
-              id: item.id,
-              ...item,
-              creation: item.creation ?? item.created_at,
-            } as Post),
+            ensurePosterUrlForPost(normalizePostRow(item)),
           ),
         );
       }
@@ -78,7 +109,7 @@ export const getFeed = async ({
   }
 
   let request = supabase
-    .from("post")
+    .from(POSTS_TABLE)
     .select("*")
     .order("creation", { ascending: false });
 
@@ -99,13 +130,7 @@ export const getFeed = async ({
     : data || [];
 
   return await Promise.all(
-    filtered.map(async (item) =>
-      ensurePosterUrlForPost({
-        id: item.id,
-        ...item,
-        creation: item.creation ?? item.created_at,
-      } as Post),
-    ),
+    filtered.map(async (item) => ensurePosterUrlForPost(normalizePostRow(item))),
   );
 };
 
@@ -124,7 +149,7 @@ export const getRecentPosts = async ({
   ];
 
   let request = supabase
-    .from("post")
+    .from(POSTS_TABLE)
     .select("*")
     .order("creation", { ascending: false })
     .limit(limit);
@@ -143,11 +168,7 @@ export const getRecentPosts = async ({
 
   const posts = await Promise.all(
     (data || []).map(async (item) =>
-      ensurePosterUrlForPost({
-        id: item.id,
-        ...item,
-        creation: item.creation ?? item.created_at,
-      } as Post),
+      ensurePosterUrlForPost(normalizePostRow(item)),
     ),
   );
 
@@ -162,7 +183,7 @@ export const getPostsByCreators = async (
   }
 
   const { data, error } = await supabase
-    .from("post")
+    .from(POSTS_TABLE)
     .select("*")
     .in("creator", creatorIds)
     .order("creation", { ascending: false });
@@ -174,11 +195,7 @@ export const getPostsByCreators = async (
 
   const posts = await Promise.all(
     (data || []).map(async (item) =>
-      ensurePosterUrlForPost({
-        id: item.id,
-        ...item,
-        creation: item.creation ?? item.created_at,
-      } as Post),
+      ensurePosterUrlForPost(normalizePostRow(item)),
     ),
   );
 
@@ -190,7 +207,7 @@ export const queryPostsByDescription = async (query: string): Promise<Post[]> =>
     return [];
   }
   const { data, error } = await supabase
-    .from("post")
+    .from(POSTS_TABLE)
     .select("*")
     .ilike("description", `%${query}%`)
     .order("creation", { ascending: false })
@@ -203,11 +220,7 @@ export const queryPostsByDescription = async (query: string): Promise<Post[]> =>
 
   const posts = await Promise.all(
     (data || []).map(async (item) =>
-      ensurePosterUrlForPost({
-        id: item.id,
-        ...item,
-        creation: item.creation ?? item.created_at,
-      } as Post),
+      ensurePosterUrlForPost(normalizePostRow(item)),
     ),
   );
 
@@ -224,7 +237,7 @@ export const queryPostsByDescription = async (query: string): Promise<Post[]> =>
 export const getLikeById = async (postId: string, uid: string) => {
   try {
     const { data, error } = await supabase
-      .from("post_likes")
+      .from(POST_LIKES_TABLE)
       .select("user_id")
       .eq("post_id", postId)
       .eq("user_id", uid);
@@ -253,7 +266,7 @@ export const updateLike = async (
   try {
     if (currentLikeState) {
       const { error } = await supabase
-        .from("post_likes")
+        .from(POST_LIKES_TABLE)
         .delete()
         .eq("post_id", postId)
         .eq("user_id", uid);
@@ -261,7 +274,7 @@ export const updateLike = async (
       if (error) throw error;
     } else {
       const { error } = await supabase
-        .from("post_likes")
+        .from(POST_LIKES_TABLE)
         .upsert({ post_id: postId, user_id: uid });
 
       if (error) throw error;
@@ -279,7 +292,7 @@ export const addComment = async (
   comment: string,
 ) => {
   try {
-    const { error } = await supabase.from("post_comments").insert({
+    const { error } = await supabase.from(POST_COMMENTS_TABLE).insert({
       post_id: postId,
       creator,
       comment,
@@ -298,7 +311,7 @@ export const commentListener = (
 ) => {
   const loadComments = async () => {
     const { data, error } = await supabase
-      .from("post_comments")
+      .from(POST_COMMENTS_TABLE)
       .select("*")
       .eq("post_id", postId)
       .order("creation", { ascending: false });
@@ -331,7 +344,7 @@ export const commentListener = (
       {
         event: "*",
         schema: "public",
-        table: "post_comments",
+        table: POST_COMMENTS_TABLE,
         filter: `post_id=eq.${postId}`,
       },
       () => {
@@ -366,7 +379,7 @@ export const getPostsByUserId = (
 
     const loadPosts = async () => {
         const { data, error } = await supabase
-          .from("post")
+          .from(POSTS_TABLE)
           .select("*")
           .eq("creator", uid)
           .order("creation", { ascending: false });
@@ -378,11 +391,7 @@ export const getPostsByUserId = (
 
       const posts = await Promise.all(
         (data || []).map(async (item) =>
-          ensurePosterUrlForPost({
-            id: item.id,
-            ...item,
-            creation: item.creation ?? item.created_at,
-          } as Post),
+          ensurePosterUrlForPost(normalizePostRow(item)),
         ),
       );
 
