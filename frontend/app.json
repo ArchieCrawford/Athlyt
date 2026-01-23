@@ -3,7 +3,7 @@
     "name": "Tayp",
     "slug": "tayp",
     "entryPoint": "./App.tsx",
-    "version": "1.0",
+    "version": "1.0.5",
     "orientation": "portrait",
     "scheme": "tayp",
     "icon": "./assets/icon.png",
@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.archie.crawford.tayp",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "icon": "./assets/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
