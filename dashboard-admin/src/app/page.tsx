@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "../lib/supabaseServer";
 import { createServiceClient } from "../lib/supabaseService";
 import {
@@ -12,6 +13,20 @@ import {
 } from "../constants/supabaseTables";
 
 type DailyCount = { date: string; count: number };
+type Metrics = {
+  totalUsers: number;
+  totalPosts: number;
+  photos: number;
+  videos: number;
+  comments: number;
+  likes: number;
+  follows: number;
+  dailyUsers: DailyCount[];
+  dailyAppOpens: DailyCount[];
+  dailyLoginFails: DailyCount[];
+  avgSessionMinutes: number;
+};
+type MetricsResult = { notAdmin: true } | { notAdmin: false; metrics: Metrics };
 
 async function getSessionUser() {
   const cookieStore = cookies();
@@ -35,7 +50,7 @@ function buildLast7() {
   return arr;
 }
 
-async function fetchMetrics(userId: string) {
+async function fetchMetrics(userId: string): Promise<MetricsResult> {
   const svc = createServiceClient();
   const resolveProfilesTable = async () => {
     const probe = await svc
@@ -60,10 +75,8 @@ async function fetchMetrics(userId: string) {
   const since7 = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
   const profilesTable = await resolveProfilesTable();
 
-  let usersLast7 = await svc
-    .from(profilesTable)
-    .select('createdAt')
-    .gte("createdAt", since7);
+  let usersLast7: PostgrestSingleResponse<{ created_at?: string; createdAt?: string }[]> =
+    await svc.from(profilesTable).select("createdAt").gte("createdAt", since7);
 
   if (usersLast7.error && usersLast7.error.code === "42703") {
     usersLast7 = await svc
